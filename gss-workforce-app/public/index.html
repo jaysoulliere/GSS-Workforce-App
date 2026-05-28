@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GSS Workforce</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .nav-link.active { background:#0b3b76; color:#fff; }
+  .nav-link.active .nav-sub-icon { color:#fff; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .doc-output { font-family: Georgia, "Times New Roman", serif; line-height:1.55; }
+  .chat-bubble { white-space: pre-wrap; word-wrap: break-word; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:9999px; }
+  textarea { font-family: inherit; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<div id="loading" class="min-h-screen flex items-center justify-center">
+  <div class="text-slate-500">Loading…</div>
+</div>
+
+<div id="app" class="min-h-screen flex hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+    <div class="p-4 border-b border-slate-200">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded bg-[#0b3b76] text-white flex items-center justify-center font-bold">GSS</div>
+        <div>
+          <div class="font-semibold leading-tight">GSS Workforce</div>
+          <div class="text-xs text-slate-500">Manager Console · MI</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1 text-sm">
+      <a data-nav="dashboard" class="nav-link active flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">▦</span> Dashboard</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">Document Generators</div>
+      <a data-nav="onboarding" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✚</span> Onboarding</a>
+      <a data-nav="writeup" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">!</span> Attendance Write-Up</a>
+      <a data-nav="cap" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">§</span> Corrective Action</a>
+      <a data-nav="termination" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✕</span> Termination Docs</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">Employee Forms</div>
+      <a data-nav="timeoff" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">📅</span> Time Off</a>
+      <a data-nav="visitlog" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">📋</span> Visit Log</a>
+      <a data-nav="application" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">👤</span> Job Applications</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">Humanity</div>
+      <a data-nav="timeclocks" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">⏱</span> Time Clocks</a>
+      <a data-nav="shifts" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">📆</span> Shifts</a>
+      <a data-nav="newuser" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">＋</span> New User</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">AI</div>
+      <a data-nav="assistant" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✦</span> Assistant</a>
+    </nav>
+
+    <div class="p-3 border-t border-slate-200">
+      <div class="text-xs text-slate-500 mb-2" id="user-label">—</div>
+      <button onclick="signOut()" class="text-xs text-slate-600 hover:text-red-600">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 overflow-y-auto">
+    <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center">
+      <div>
+        <div id="page-title" class="text-lg font-semibold">Dashboard</div>
+        <div id="page-sub" class="text-xs text-slate-500">Internal tools for Global Security Solutions managers</div>
+      </div>
+      <div class="text-sm text-slate-500" id="today"></div>
+    </header>
+
+    <div class="p-6">
+
+      <!-- DASHBOARD -->
+      <section class="panel active" id="panel-dashboard">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-white rounded-lg p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 uppercase">Docs generated (lifetime)</div>
+            <div class="text-3xl font-bold" id="stat-docs">—</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 uppercase">Form submissions (lifetime)</div>
+            <div class="text-3xl font-bold" id="stat-forms">—</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 uppercase">Backend status</div>
+            <div class="text-base font-semibold mt-1" id="stat-backend">Checking…</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-5 border border-slate-200">
+            <div class="font-semibold mb-3">Quick actions</div>
+            <div class="grid grid-cols-2 gap-3">
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="onboarding"><div class="font-medium">+ Onboard hire</div><div class="text-xs text-slate-500">Credentials + letter</div></button>
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="writeup"><div class="font-medium">! Attendance write-up</div><div class="text-xs text-slate-500">CSV or manual</div></button>
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="cap"><div class="font-medium">§ Corrective action</div><div class="text-xs text-slate-500">Warnings + CAP</div></button>
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="termination"><div class="font-medium">✕ Termination</div><div class="text-xs text-slate-500">Notice + UIA</div></button>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-5 border border-slate-200">
+            <div class="font-semibold mb-3">Recent activity</div>
+            <div id="recent-activity" class="text-sm text-slate-500">Loading…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ONBOARDING -->
+      <section class="panel" id="panel-onboarding">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">New Hire Onboarding</h2>
+          <p class="text-sm text-slate-500 mb-4">Collect info, derive Humanity credentials, generate welcome letter. Optional: create the Humanity user in one click.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">First name</span><input id="ob-first" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Last name</span><input id="ob-last" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Phone</span><input id="ob-phone" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Email</span><input id="ob-email" type="email" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Date of birth</span><input id="ob-dob" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position assignment</span>
+              <select id="ob-pos" class="mt-1 w-full border rounded px-3 py-2"><option>MI, Detroit Area</option><option>MI, West MI</option><option>MI, Tri-Cities</option><option>MI, Statewide Float</option></select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Hourly rate</span><input id="ob-rate" type="number" step="0.25" value="16" class="mt-1 w-full border rounded px-3 py-2" /></label>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="generateOnboarding()" class="bg-[#0b3b76] text-white px-4 py-2 rounded">Generate welcome letter</button>
+            <button onclick="provisionHumanity()" class="border px-4 py-2 rounded">+ also create Humanity user</button>
+          </div>
+        </div>
+        <div id="ob-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">Generated</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('ob-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('ob-output','GSS_Welcome_Letter.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div class="bg-slate-50 p-3 rounded"><div class="text-xs text-slate-500">Humanity username</div><div id="ob-username" class="font-mono font-semibold"></div></div>
+            <div class="bg-slate-50 p-3 rounded"><div class="text-xs text-slate-500">Humanity password</div><div id="ob-password" class="font-mono font-semibold"></div></div>
+          </div>
+          <div id="ob-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+          <div id="ob-humanity-result" class="hidden mt-4 p-3 rounded border text-xs"></div>
+        </div>
+      </section>
+
+      <!-- WRITE-UP -->
+      <section class="panel" id="panel-writeup">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Attendance Write-Up</h2>
+          <p class="text-sm text-slate-500 mb-4">Drafts are for supervisor review only — verify facts before delivery.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee (Last, First)</span><input id="wu-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="wu-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Date of incident</span><input id="wu-date" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Type</span>
+              <select id="wu-type" class="mt-1 w-full border rounded px-3 py-2"><option>Late Arrival</option><option>Missed Protos Punch</option><option>No-Call No-Show</option></select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Scheduled start</span><input id="wu-sched" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Actual clock-in</span><input id="wu-actual" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Prior history (optional)</span><textarea id="wu-prior" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Employee statement (optional)</span><textarea id="wu-stmt" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+          </div>
+          <button onclick="generateWriteup()" class="mt-4 bg-[#0b3b76] text-white px-4 py-2 rounded">Generate</button>
+        </div>
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h3 class="font-semibold mb-2">Or import Humanity CSV</h3>
+          <input type="file" id="wu-csv" accept=".csv" class="text-sm" />
+          <div id="wu-csv-summary" class="text-sm mt-3"></div>
+        </div>
+        <div id="wu-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4"><h3 class="font-semibold">Draft</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('wu-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('wu-output','GSS_WriteUp.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div id="wu-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- CAP -->
+      <section class="panel" id="panel-cap">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Corrective Action</h2>
+          <p class="text-sm text-slate-500 mb-4">Verbal / Written / Final / CAP — draft only, requires management review.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee (Last, First)</span><input id="cap-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position</span><input id="cap-pos" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="cap-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Document type</span>
+              <select id="cap-type" class="mt-1 w-full border rounded px-3 py-2"><option>Verbal Warning Memo</option><option>Written Warning</option><option>Final Warning</option><option>Corrective Action Plan (CAP)</option></select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Issue category</span>
+              <select id="cap-cat" class="mt-1 w-full border rounded px-3 py-2"><option>Attendance</option><option>Conduct</option><option>Performance</option><option>Policy Violation</option><option>Post Order Violation</option></select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Prepared by</span><input id="cap-by" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Specific incident(s)</span><textarea id="cap-incident" rows="3" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Prior history</span><textarea id="cap-prior" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Employee statement</span><textarea id="cap-stmt" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Required improvement</span><textarea id="cap-improve" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Review period</span><input id="cap-review" class="mt-1 w-full border rounded px-3 py-2" placeholder="30/60/90 days" /></label>
+          </div>
+          <button onclick="generateCAP()" class="mt-4 bg-[#0b3b76] text-white px-4 py-2 rounded">Generate</button>
+        </div>
+        <div id="cap-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4"><h3 class="font-semibold">Draft</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('cap-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('cap-output','GSS_Corrective_Action.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div id="cap-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- TERMINATION -->
+      <section class="panel" id="panel-termination">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Termination & Separation</h2>
+          <p class="text-sm text-slate-500 mb-4">UIA summaries should be reviewed by HR/legal before submission.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee</span><input id="tm-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position</span><input id="tm-pos" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="tm-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Last day</span><input id="tm-last" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Type</span>
+              <select id="tm-type" class="mt-1 w-full border rounded px-3 py-2"><option>Involuntary — Attendance</option><option>Involuntary — Conduct</option><option>Involuntary — Policy Violation</option><option>Involuntary — Performance</option><option>Involuntary — Job Abandonment</option><option>Voluntary Resignation</option><option>Layoff / RIF</option><option>End of Assignment</option></select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Prepared by</span><input id="tm-by" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Final incident</span><textarea id="tm-incident" rows="3" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Prior documentation</span><textarea id="tm-prior" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Employee response</span><textarea id="tm-stmt" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-3 items-center text-sm">
+            <span class="text-xs text-slate-500">Docs:</span>
+            <label><input type="checkbox" id="tm-notice" checked> Notice</label>
+            <label><input type="checkbox" id="tm-sep" checked> Separation Letter</label>
+            <label><input type="checkbox" id="tm-uia"> UIA Summary</label>
+          </div>
+          <button onclick="generateTermination()" class="mt-4 bg-[#0b3b76] text-white px-4 py-2 rounded">Generate</button>
+        </div>
+        <div id="tm-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4"><h3 class="font-semibold">Drafts</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('tm-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('tm-output','GSS_Termination.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div id="tm-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- TIME OFF -->
+      <section class="panel" id="panel-timeoff">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h2 class="text-lg font-semibold mb-3">Time Off Request</h2>
+            <div class="space-y-3">
+              <label class="block"><span class="text-xs font-medium text-slate-600">Employee</span><input id="to-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="to-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="text-xs font-medium text-slate-600">Start</span><input id="to-start" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+                <label class="block"><span class="text-xs font-medium text-slate-600">End</span><input id="to-end" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              </div>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Reason</span>
+                <select id="to-reason" class="mt-1 w-full border rounded px-3 py-2"><option>Vacation</option><option>Personal</option><option>Medical</option><option>Bereavement</option><option>Other</option></select>
+              </label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Notes</span><textarea id="to-notes" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <button onclick="submitForm('time_off')" class="bg-[#0b3b76] text-white px-4 py-2 rounded">Submit</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="font-semibold mb-3">Recent requests</h3>
+            <div id="list-time_off" class="space-y-2 text-sm">Loading…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VISIT LOG -->
+      <section class="panel" id="panel-visitlog">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h2 class="text-lg font-semibold mb-3">Supervisor Visit Log</h2>
+            <div class="space-y-3">
+              <label class="block"><span class="text-xs font-medium text-slate-600">Supervisor</span><input id="vl-sup" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="vl-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="text-xs font-medium text-slate-600">Date</span><input id="vl-date" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+                <label class="block"><span class="text-xs font-medium text-slate-600">Time</span><input id="vl-time" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              </div>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Officer on duty</span><input id="vl-officer" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">In uniform & on post?</span>
+                <select id="vl-uniform" class="mt-1 w-full border rounded px-3 py-2"><option value="true">Yes</option><option value="false">No</option></select>
+              </label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Observations</span><textarea id="vl-obs" rows="3" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Action items</span><textarea id="vl-action" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <button onclick="submitForm('visit_logs')" class="bg-[#0b3b76] text-white px-4 py-2 rounded">Log visit</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="font-semibold mb-3">Recent visits</h3>
+            <div id="list-visit_logs" class="space-y-2 text-sm">Loading…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APPLICATIONS -->
+      <section class="panel" id="panel-application">
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-lg font-semibold">Job Applications</h2>
+            <button onclick="loadList('applications')" class="text-sm border px-3 py-1 rounded">Refresh</button>
+          </div>
+          <div id="list-applications" class="space-y-2 text-sm">Loading…</div>
+        </div>
+      </section>
+
+      <!-- TIME CLOCKS -->
+      <section class="panel" id="panel-timeclocks">
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <div><h2 class="text-lg font-semibold">Time Clocks (Humanity)</h2>
+              <p class="text-xs text-slate-500">Live data via /api/humanity. If empty, your token may not have permission.</p></div>
+            <div class="flex gap-2">
+              <input type="date" id="tc-start" class="border rounded px-2 py-1 text-sm" />
+              <input type="date" id="tc-end"   class="border rounded px-2 py-1 text-sm" />
+              <button onclick="loadTimeClocks()" class="border rounded px-3 py-1 text-sm">Load</button>
+            </div>
+          </div>
+          <div id="tc-rows" class="text-sm text-slate-500">Pick a date range and click Load.</div>
+        </div>
+      </section>
+
+      <!-- SHIFTS -->
+      <section class="panel" id="panel-shifts">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Create Shift</h2>
+          <p class="text-xs text-slate-500 mb-4">Saves to the queue (Supabase). "Push to Humanity" calls /api/humanity to create the shift.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee name (display)</span><input id="sh-emp" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Humanity employee ID</span><input id="sh-empid" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site (display)</span><input id="sh-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Humanity location ID</span><input id="sh-locid" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Schedule ID</span><input id="sh-schid" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Date</span><input id="sh-date" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Start</span><input id="sh-start" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">End</span><input id="sh-end" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Notes</span><input id="sh-notes" class="mt-1 w-full border rounded px-3 py-2" /></label>
+          </div>
+          <button onclick="queueShift()" class="mt-4 bg-[#0b3b76] text-white px-4 py-2 rounded">Add to queue</button>
+        </div>
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <h3 class="font-semibold mb-3">Shift queue</h3>
+          <div id="list-shifts" class="space-y-2 text-sm">Loading…</div>
+        </div>
+      </section>
+
+      <!-- NEW USER -->
+      <section class="panel" id="panel-newuser">
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <h2 class="text-lg font-semibold mb-1">New Humanity User</h2>
+          <p class="text-xs text-slate-500 mb-4">Provisions via /api/humanity. Username/password follow the GSS firstnamelastname5 convention.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">First name</span><input id="nu-first" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Last name</span><input id="nu-last" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Email</span><input id="nu-email" type="email" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position assignment</span>
+              <select id="nu-pos" class="mt-1 w-full border rounded px-3 py-2"><option>MI, Detroit Area</option><option>MI, West MI</option><option>MI, Tri-Cities</option><option>MI, Statewide Float</option></select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Hourly rate</span><input id="nu-rate" type="number" step="0.25" value="16" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Type</span>
+              <select id="nu-emp" class="mt-1 w-full border rounded px-3 py-2"><option>Full-time</option><option>Part-time</option><option>As-needed</option></select>
+            </label>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="previewNewUser()" class="border px-4 py-2 rounded">Preview payload</button>
+            <button onclick="createHumanityUser()" class="bg-[#0b3b76] text-white px-4 py-2 rounded">Create in Humanity</button>
+          </div>
+          <pre id="nu-payload" class="hidden mt-4 bg-slate-900 text-green-200 text-xs p-4 rounded overflow-auto"></pre>
+          <div id="nu-result" class="hidden mt-4 p-3 rounded border text-xs"></div>
+        </div>
+      </section>
+
+      <!-- ASSISTANT -->
+      <section class="panel" id="panel-assistant">
+        <div class="bg-white rounded-lg border border-slate-200 flex flex-col" style="height: calc(100vh - 180px);">
+          <div class="p-4 border-b flex justify-between items-center">
+            <div><div class="font-semibold">GSS AI Assistant</div>
+              <div class="text-xs text-slate-500">Routed through /api/anthropic with your server-side key.</div></div>
+            <div class="text-xs pill bg-emerald-100 text-emerald-800">Server proxy</div>
+          </div>
+          <div id="chat-log" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+          <div class="p-3 border-t flex gap-2">
+            <textarea id="chat-input" rows="2" class="flex-1 border rounded px-3 py-2 text-sm" placeholder="e.g., Draft a write-up: J. Smith, 27 min late at Meijer #54 on 5/26, first offense."></textarea>
+            <button onclick="sendChat()" class="bg-[#0b3b76] text-white px-4 rounded">Send</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script src="/config.js"></script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// ---------- bootstrap ----------
+if (!window.GSS_CONFIG || !window.GSS_CONFIG.SUPABASE_URL.startsWith("https://")) {
+  document.getElementById("loading").innerHTML = '<div class="text-red-600 text-sm">Frontend not configured — edit <code>public/config.js</code> with your Supabase URL + anon key.</div>';
+  throw new Error("config missing");
+}
+const supabase = createClient(window.GSS_CONFIG.SUPABASE_URL, window.GSS_CONFIG.SUPABASE_ANON_KEY);
+window.supabase = supabase;
+
+// Require login
+let { data: { session } } = await supabase.auth.getSession();
+if (!session) location.replace("/login.html");
+
+document.getElementById("loading").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+document.getElementById("user-label").textContent = session.user.email;
+document.getElementById("today").textContent = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+
+// ---------- helpers exposed globally ----------
+const $ = (id) => document.getElementById(id);
+const fmtDate = (d) => d ? new Date(d + "T00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}) : "[date]";
+const fmt12 = (t) => { if (!t) return "[time]"; const [h,m] = t.split(":").map(Number); const ampm = h>=12?"PM":"AM"; const h12 = ((h+11)%12)+1; return `${h12}:${String(m).padStart(2,"0")} ${ampm}`; };
+const escapeHTML = (s) => String(s||"").replace(/[<&>"]/g, c=>({'<':'&lt;','&':'&amp;','>':'&gt;','"':'&quot;'}[c]));
+const parseTime = (t) => { const [h,m] = t.split(":").map(Number); const d = new Date(0); d.setHours(h,m); return d.getTime(); };
+
+window.signOut = async () => { await supabase.auth.signOut(); location.replace("/login.html"); };
+
+// ---------- nav ----------
+const PAGE_TITLES = {
+  dashboard:    ["Dashboard", "Internal tools for Global Security Solutions managers"],
+  onboarding:   ["Onboarding", "New hire workflow"],
+  writeup:      ["Attendance Write-Up", "Draft attendance documents"],
+  cap:          ["Corrective Action", "Verbal · Written · Final · CAP"],
+  termination:  ["Termination Documents", "Notice · Separation letter · UIA"],
+  timeoff:      ["Time Off Request", "Employee form"],
+  visitlog:     ["Supervisor Visit Log", "Site visit documentation"],
+  application:  ["Job Applications", "Inbound applicants"],
+  timeclocks:   ["Time Clocks", "Humanity timesheet review"],
+  shifts:       ["Shifts", "Create / queue shifts"],
+  newuser:      ["New Humanity User", "Provision scheduling account"],
+  assistant:    ["AI Assistant", "Powered by Claude (server-side)"],
+};
+
+window.go = (key) => {
+  document.querySelectorAll(".nav-link").forEach(n => n.classList.toggle("active", n.dataset.nav === key));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + key));
+  const t = PAGE_TITLES[key] || [key, ""];
+  $("page-title").textContent = t[0]; $("page-sub").textContent = t[1];
+  // lazy-load lists when a panel opens
+  if (key === "timeoff")     loadList("time_off");
+  if (key === "visitlog")    loadList("visit_logs");
+  if (key === "application") loadList("applications");
+  if (key === "shifts")      loadShifts();
+};
+document.querySelectorAll("[data-nav]").forEach(el => el.addEventListener("click", () => go(el.dataset.nav)));
+document.querySelectorAll("[data-nav-link]").forEach(el => el.addEventListener("click", () => go(el.dataset.navLink)));
+
+// ---------- api helpers ----------
+async function authFetch(path, body) {
+  const { data: { session } } = await supabase.auth.getSession();
+  return fetch(path, {
+    method: "POST",
+    headers: { "content-type":"application/json", authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify(body || {}),
+  });
+}
+
+// ---------- generators (same logic as v0 + persists to Supabase) ----------
+async function logDoc(doc_type, employee, body, metadata={}) {
+  const { error } = await supabase.from("generated_docs").insert({ doc_type, employee, body, metadata });
+  if (error) console.warn("logDoc error:", error.message);
+  loadDashboardStats();
+}
+
+window.generateOnboarding = async () => {
+  const first = $("ob-first").value.trim(), last = $("ob-last").value.trim();
+  if (!first || !last) return alert("First and last name required.");
+  const username = (first + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const password = first.charAt(0).toUpperCase() + (first.slice(1) + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  $("ob-username").textContent = username; $("ob-password").textContent = password;
+  const letter =
+`Welcome to Global Security Solutions,
+
+Your new-hire paperwork has been sent to you electronically through Adobe Sign for completion. Please complete all required documents using the Adobe Sign link you received.
+
+In addition, our onboarding site is available, offering access to the required forms as well as the employee handbook and a range of training materials.
+
+To familiarize yourself with our policies and procedures, please take a moment to review the training materials available at the following link:
+GSS MI Guard Guide
+
+If you have trouble accessing Adobe Sign or the onboarding site, please let us know.
+
+For the I-9, be sure to complete page 1 and the top portion of page 2. You will need to provide either one document from List A or one document each from Lists B and C. You will be prompted to upload images of these documents through the onboarding process.
+
+A voided check is not required for the direct deposit form, but please ensure your account and routing numbers are accurate and easy to read.
+
+Payroll Information
+Our pay cycle runs weekly, Monday through Sunday, with payday every Friday via direct deposit.
+Your first paycheck will cover your first two weeks of work.
+Paycheck stubs are sent by email and require the last four digits of your Social Security number to open.
+
+Employee Scheduling
+We use the TCP Humanity Employee Scheduling app.
+
+Your username is:
+${username}
+
+Your password is:
+${password}
+
+Note:
+The first letter is capitalized in the password but lowercase in the username.
+Please sign in using the username above.
+Do not try to sign in using your email address.
+Please download the app so you can view and request available shifts.
+When requesting shifts, it is best to also follow up by text message with the office / Command Center number to make sure your request is approved.
+
+By signing in to the TCP Humanity app, you agree to read the GSS Employee Handbook. The handbook can be found under "Files" in the app menu.
+
+Jay D. Soulliere Jr.
+Global Security Solutions Inc.
+jay@globalsecuritysolutions.com
+Tel: 313-484-4845 | 866-GLO-SECU`;
+  $("ob-output").innerText = letter;
+  $("ob-result").classList.remove("hidden");
+  await logDoc("onboarding", `${first} ${last}`, letter, { username, position: $("ob-pos").value });
+};
+
+window.provisionHumanity = async () => {
+  const first = $("ob-first").value.trim(), last = $("ob-last").value.trim();
+  if (!first || !last) return alert("First and last name required.");
+  const username = (first + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const password = first.charAt(0).toUpperCase() + (first.slice(1) + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const box = $("ob-humanity-result");
+  box.classList.remove("hidden"); box.className = "mt-4 p-3 rounded border text-xs bg-slate-50";
+  box.textContent = "Calling Humanity…";
+  const resp = await authFetch("/api/humanity", {
+    action: "create_user",
+    first_name: first, last_name: last,
+    email: $("ob-email").value, username, password,
+    hourly_rate: parseFloat($("ob-rate").value || "16"),
+    position_assignment: $("ob-pos").value,
+  });
+  const data = await resp.json();
+  if (resp.ok) {
+    box.className = "mt-4 p-3 rounded border text-xs bg-emerald-50 text-emerald-800";
+    box.textContent = "Humanity user created. " + JSON.stringify(data).slice(0, 400);
+  } else {
+    box.className = "mt-4 p-3 rounded border text-xs bg-red-50 text-red-700";
+    box.textContent = "Humanity error: " + JSON.stringify(data);
+  }
+};
+
+window.generateWriteup = async () => {
+  const name = $("wu-name").value.trim() || "[Employee]";
+  const site = $("wu-site").value.trim() || "[Site]";
+  const date = fmtDate($("wu-date").value);
+  const type = $("wu-type").value;
+  const sched = $("wu-sched").value, actual = $("wu-actual").value;
+  let summary;
+  if (type === "Missed Protos Punch" || !actual) {
+    summary = `On ${date}, ${name} was scheduled to begin their shift at ${fmt12(sched)} at ${site}. According to the Humanity attendance record, no valid Protos punch was recorded for this shift. This reflects a missed Protos punch.`;
+  } else if (type === "No-Call No-Show") {
+    summary = `On ${date}, ${name} was scheduled to begin their shift at ${fmt12(sched)} at ${site}. According to the Humanity attendance record, no clock-in occurred and the employee did not contact the Command Center prior to the shift. This reflects a no-call no-show.`;
+  } else {
+    const diff = (sched && actual) ? Math.round(((parseTime(actual)-parseTime(sched))/60000)) : null;
+    summary = `On ${date}, ${name} was scheduled to begin their shift at ${fmt12(sched)} at ${site}. According to the Humanity attendance record, the employee clocked in at ${fmt12(actual)}. This reflects ${diff != null ? `a ${diff}-minute late arrival` : "a late arrival"}.`;
+  }
+  const body =
+`ATTENDANCE WRITE-UP — DRAFT (for supervisor review)
+
+Employee:        ${name}
+Site:            ${site}
+Date of Incident: ${date}
+Type:            ${type}
+
+Summary of Record:
+${summary}
+
+Prior History:
+${$("wu-prior").value.trim() || "Prior attendance history was not provided for this review."}
+
+Employee Statement:
+${$("wu-stmt").value.trim() || "No statement has been obtained at this time."}
+
+Next Steps:
+This draft is prepared for supervisor review. Management should verify the record, obtain any employee statement, and determine the appropriate disciplinary step consistent with GSS attendance policy before finalizing.`;
+  $("wu-output").innerText = body;
+  $("wu-result").classList.remove("hidden");
+  await logDoc("writeup", name, body, { type, site });
+};
+
+$("wu-csv").addEventListener("change", (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const lines = r.result.split(/\r?\n/).filter(Boolean);
+    const header = lines[0].split(",");
+    const drafted = [], skipped = [];
+    for (let i=1;i<lines.length;i++){
+      const cols = lines[i].split(",");
+      const row = Object.fromEntries(header.map((h,j)=>[h.trim().toLowerCase(), (cols[j]||"").trim()]));
+      const name = row["employee"] || row["name"] || "[unknown]";
+      const sched = row["scheduled"] || row["scheduled start"] || "";
+      const actual = row["clock in"] || row["actual"] || "";
+      if (!sched) { skipped.push(`${name} — no scheduled start`); continue; }
+      if (!actual) { drafted.push({name, type:"Missed punch"}); continue; }
+      const d = (parseTime(actual)-parseTime(sched))/60000;
+      if (d > 5) drafted.push({name, type:"Late Arrival", diff:Math.round(d)}); else skipped.push(`${name} — within 5 min`);
+    }
+    $("wu-csv-summary").innerHTML =
+      `<div class="font-medium mb-1">${drafted.length} draftable, ${skipped.length} skipped.</div>` +
+      (drafted.length?`<ul class="list-disc pl-5 text-slate-600">${drafted.slice(0,8).map(d=>`<li>${d.name} — ${d.type}${d.diff?` (${d.diff} min)`:""}</li>`).join("")}</ul>`:"") +
+      (skipped.length?`<details class="mt-2"><summary class="text-slate-500">Skipped (${skipped.length})</summary><ul class="list-disc pl-5 text-xs text-slate-500">${skipped.map(s=>`<li>${s}</li>`).join("")}</ul></details>`:"");
+  };
+  r.readAsText(file);
+});
+
+window.generateCAP = async () => {
+  const t = $("cap-type").value;
+  const consequences = ({
+    "Verbal Warning Memo": "Continued issues may result in formal written documentation and further corrective action.",
+    "Written Warning":     "Further violations may result in additional disciplinary action up to and including termination.",
+    "Final Warning":       "Any further occurrence of this issue may result in immediate termination of employment.",
+    "Corrective Action Plan (CAP)": "Failure to meet the improvement expectations within the review period may result in additional disciplinary action up to and including termination.",
+  })[t];
+  const body =
+`CORRECTIVE ACTION — ${t.toUpperCase()}
+
+Employee:      ${$("cap-name").value.trim() || "[Last, First]"}
+Position:      ${$("cap-pos").value.trim() || "[Title]"}
+Site:          ${$("cap-site").value.trim() || "[Site]"}
+Date of Document: ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}
+Prepared by:   ${$("cap-by").value.trim() || "To be completed by supervisor"}
+
+Issue:
+${$("cap-cat").value} — see incident summary below.
+
+Incident Summary:
+${$("cap-incident").value.trim() || "[Date-by-date account of specific incident(s).]"}
+
+Prior History:
+${$("cap-prior").value.trim() || "No prior disciplinary history was provided for this review."}
+
+Employee Statement:
+${$("cap-stmt").value.trim() || "No employee statement has been obtained at this time."}
+
+Required Improvement:
+${$("cap-improve").value.trim() || "[Specific, measurable expectations going forward.]"}
+
+Consequences of Non-Compliance:
+${consequences}
+
+Review Period: ${$("cap-review").value.trim() || "N/A"}
+
+— Draft for management review. Verify all facts before finalizing.`;
+  $("cap-output").innerText = body;
+  $("cap-result").classList.remove("hidden");
+  await logDoc("cap", $("cap-name").value.trim(), body, { type: t });
+};
+
+window.generateTermination = async () => {
+  const name = $("tm-name").value.trim() || "[Last, First]";
+  const pos  = $("tm-pos").value.trim() || "[Title]";
+  const site = $("tm-site").value.trim() || "[Site]";
+  const last = fmtDate($("tm-last").value);
+  const type = $("tm-type").value;
+  const by   = $("tm-by").value.trim() || "To be completed";
+  const incident = $("tm-incident").value.trim();
+  const prior = $("tm-prior").value.trim();
+  const stmt = $("tm-stmt").value.trim();
+  const parts = [];
+  if ($("tm-notice").checked) parts.push(
+`NOTICE OF EMPLOYMENT TERMINATION
+
+Employee: ${name}
+Position: ${pos}
+Site: ${site}
+Effective Date: ${last}
+
+This letter serves as formal notice that your employment with Global Security Solutions is terminated effective ${last}.
+
+Reason: ${type}${incident ? `, following: "${incident.split("\n")[0]}".` : "."}
+
+Please return all company-issued equipment, uniforms, access credentials, and post orders by the effective date.
+
+Prepared by: ${by}`);
+  if ($("tm-sep").checked) parts.push(
+`SEPARATION LETTER
+
+Employee: ${name}  ·  Position: ${pos}  ·  Site: ${site}
+Effective Date: ${last}
+
+Factual narrative:
+${incident || "[Full factual narrative of separation.]"}
+
+Prior documentation:
+${prior || "No prior disciplinary documentation was provided."}
+
+Employee response:
+${stmt || "No employee statement was obtained."}
+
+Prepared by: ${by}`);
+  if ($("tm-uia").checked) parts.push(
+`UIA SEPARATION SUMMARY — CONFIDENTIAL
+
+Claimant: ${name}  ·  Former Position: ${pos}  ·  Site: ${site}
+Last Day of Work: ${last}  ·  Reason: ${type}
+
+Factual Summary:
+${incident || "[Chronological account of documented events leading to separation.]"}
+
+Prior Documentation on File:
+${prior || "No prior written disciplinary documentation was provided."}
+
+Employee Statement:
+${stmt || "No statement was obtained from the employee prior to separation."}
+
+For internal review and potential UIA response. Should be reviewed by HR or legal counsel before submission.`);
+  $("tm-output").innerText = parts.join("\n\n———\n\n");
+  $("tm-result").classList.remove("hidden");
+  await logDoc("termination", name, $("tm-output").innerText, { type });
+};
+
+window.copyOutput = (id) => {
+  navigator.clipboard.writeText($(id).innerText);
+};
+window.downloadDoc = (id, filename) => {
+  const html = `<!doctype html><html><head><meta charset="utf-8"></head><body><pre style="font-family:Georgia,serif;white-space:pre-wrap;">${escapeHTML($(id).innerText)}</pre></body></html>`;
+  const blob = new Blob([html], {type:"application/msword"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ---------- forms ----------
+window.submitForm = async (table) => {
+  let row;
+  if (table === "time_off") {
+    row = { employee:$("to-name").value, site:$("to-site").value, start_date:$("to-start").value||null, end_date:$("to-end").value||null, reason:$("to-reason").value, notes:$("to-notes").value };
+    if (!row.employee) return alert("Employee required.");
+  } else if (table === "visit_logs") {
+    row = { supervisor:$("vl-sup").value, site:$("vl-site").value, visit_date:$("vl-date").value||null, visit_time:$("vl-time").value||null, officer:$("vl-officer").value, in_uniform:$("vl-uniform").value === "true", observations:$("vl-obs").value, action_items:$("vl-action").value };
+    if (!row.supervisor || !row.site) return alert("Supervisor and site required.");
+  }
+  const { error } = await supabase.from(table).insert(row);
+  if (error) return alert("Error: " + error.message);
+  alert("Saved.");
+  document.querySelectorAll(`#panel-${table === "time_off" ? "timeoff" : "visitlog"} input, #panel-${table === "time_off" ? "timeoff" : "visitlog"} textarea`).forEach(el => el.value = "");
+  loadList(table);
+  loadDashboardStats();
+};
+
+window.loadList = async (table) => {
+  const el = $("list-" + table);
+  const { data, error } = await supabase.from(table).select("*").order("created_at",{ascending:false}).limit(25);
+  if (error) { el.innerHTML = `<div class="text-red-500">${error.message}</div>`; return; }
+  if (!data.length) { el.innerHTML = '<div class="text-slate-400">No submissions yet.</div>'; return; }
+  el.innerHTML = data.map(i => {
+    let title = "Submission", sub = "";
+    if (table === "time_off") { title = i.employee; sub = `${i.site||""} · ${i.start_date||""}–${i.end_date||""} · ${i.reason}`; }
+    if (table === "visit_logs") { title = i.supervisor; sub = `${i.site} · ${i.visit_date||""} ${i.visit_time||""}`; }
+    if (table === "applications") { title = `${i.first_name||""} ${i.last_name||""}`.trim(); sub = `${i.position||""} · ${i.email||""} · ${i.phone||""}`; }
+    return `<div class="border rounded p-2"><div class="font-medium">${escapeHTML(title)}</div><div class="text-xs text-slate-500">${escapeHTML(sub)} · ${new Date(i.created_at).toLocaleString()}</div></div>`;
+  }).join("");
+};
+
+// ---------- humanity ----------
+window.loadTimeClocks = async () => {
+  const el = $("tc-rows");
+  el.innerHTML = "Loading…";
+  const resp = await authFetch("/api/humanity", { action: "list_timeclocks", start_date: $("tc-start").value, end_date: $("tc-end").value });
+  const data = await resp.json();
+  if (!resp.ok) { el.innerHTML = `<div class="text-red-500 text-xs">${escapeHTML(JSON.stringify(data))}</div>`; return; }
+  const rows = Array.isArray(data) ? data : (data?.data || []);
+  if (!rows.length) { el.innerHTML = '<div class="text-slate-400">No records in range.</div>'; return; }
+  el.innerHTML = `<table class="w-full text-sm"><thead class="text-left text-xs uppercase text-slate-500 border-b"><tr><th class="py-2">Employee</th><th>Date</th><th>In</th><th>Out</th><th>Hours</th></tr></thead><tbody>${
+    rows.slice(0,200).map(r => `<tr class="border-b"><td class="py-2">${escapeHTML(r.employee || r.name || r.full_name || "—")}</td><td>${escapeHTML(r.date||r.day||"—")}</td><td>${escapeHTML(r.in||r.clock_in||"—")}</td><td>${escapeHTML(r.out||r.clock_out||"—")}</td><td>${escapeHTML(String(r.hours||r.duration||"—"))}</td></tr>`).join("")
+  }</tbody></table>`;
+};
+
+window.queueShift = async () => {
+  const row = {
+    employee: $("sh-emp").value, site: $("sh-site").value,
+    shift_date: $("sh-date").value || null,
+    start_time: $("sh-start").value || null, end_time: $("sh-end").value || null,
+    notes: $("sh-notes").value,
+  };
+  if (!row.employee || !row.shift_date) return alert("Employee and date required.");
+  const { error } = await supabase.from("shifts_queue").insert(row);
+  if (error) return alert(error.message);
+  alert("Queued. Use 'Push to Humanity' from the queue list to send.");
+  loadShifts();
+};
+
+async function loadShifts() {
+  const el = $("list-shifts");
+  const { data, error } = await supabase.from("shifts_queue").select("*").order("created_at",{ascending:false}).limit(25);
+  if (error) { el.innerHTML = `<div class="text-red-500">${error.message}</div>`; return; }
+  if (!data.length) { el.innerHTML = '<div class="text-slate-400">No queued shifts.</div>'; return; }
+  el.innerHTML = data.map(s => `
+    <div class="border rounded p-3 flex justify-between items-center">
+      <div>
+        <div class="font-medium">${escapeHTML(s.employee)} <span class="text-xs text-slate-500">· ${escapeHTML(s.site||"")}</span></div>
+        <div class="text-xs text-slate-500">${s.shift_date} ${s.start_time||""}–${s.end_time||""} ${s.notes?` · ${escapeHTML(s.notes)}`:""}</div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${s.pushed_to_humanity ? '<span class="pill bg-emerald-100 text-emerald-800">pushed</span>' : `<button class="text-xs border px-2 py-1 rounded" onclick="pushShift('${s.id}')">Push to Humanity</button>`}
+        <button class="text-xs text-red-600" onclick="deleteShift('${s.id}')">×</button>
+      </div>
+    </div>
+  `).join("");
+}
+window.pushShift = async (id) => {
+  const { data: rows } = await supabase.from("shifts_queue").select("*").eq("id", id).single();
+  if (!rows) return;
+  const empid = prompt("Humanity employee ID (numeric)?"); if (!empid) return;
+  const locid = prompt("Humanity location ID?"); if (!locid) return;
+  const schid = prompt("Humanity schedule ID?"); if (!schid) return;
+  const resp = await authFetch("/api/humanity", {
+    action:"create_shift",
+    employee_id: parseInt(empid,10), location_id: parseInt(locid,10), schedule_id: parseInt(schid,10),
+    start_time: `${rows.shift_date} ${rows.start_time}`,
+    end_time:   `${rows.shift_date} ${rows.end_time}`,
+    notes: rows.notes || "",
+  });
+  const data = await resp.json();
+  if (!resp.ok) return alert("Humanity error: " + JSON.stringify(data));
+  await supabase.from("shifts_queue").update({ pushed_to_humanity: true, humanity_shift_id: String(data?.id || "") }).eq("id", id);
+  loadShifts();
+};
+window.deleteShift = async (id) => {
+  if (!confirm("Delete this queued shift?")) return;
+  await supabase.from("shifts_queue").delete().eq("id", id);
+  loadShifts();
+};
+
+window.previewNewUser = () => {
+  const first = $("nu-first").value.trim(), last = $("nu-last").value.trim();
+  if (!first || !last) return alert("Name required.");
+  const username = (first + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const password = first.charAt(0).toUpperCase() + (first.slice(1) + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const p = { first_name:first, last_name:last, email:$("nu-email").value, username, password, hourly_rate:parseFloat($("nu-rate").value||"16"), position_assignment:$("nu-pos").value, employment_type:$("nu-emp").value };
+  const el = $("nu-payload"); el.textContent = JSON.stringify(p, null, 2); el.classList.remove("hidden");
+};
+window.createHumanityUser = async () => {
+  const first = $("nu-first").value.trim(), last = $("nu-last").value.trim();
+  if (!first || !last) return alert("Name required.");
+  const username = (first + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const password = first.charAt(0).toUpperCase() + (first.slice(1) + last + "5").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const box = $("nu-result"); box.classList.remove("hidden"); box.textContent = "Calling Humanity…"; box.className = "mt-4 p-3 rounded border text-xs bg-slate-50";
+  const resp = await authFetch("/api/humanity", {
+    action:"create_user", first_name:first, last_name:last, email:$("nu-email").value, username, password,
+    hourly_rate:parseFloat($("nu-rate").value||"16"), position_assignment:$("nu-pos").value, employment_type:$("nu-emp").value,
+  });
+  const data = await resp.json();
+  box.className = "mt-4 p-3 rounded border text-xs " + (resp.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700");
+  box.textContent = (resp.ok ? "Created. " : "Error: ") + JSON.stringify(data).slice(0, 600);
+};
+
+// ---------- chat ----------
+let CHAT_HISTORY = [];
+function appendChat(role, text) {
+  const el = document.createElement("div");
+  el.className = role === "user" ? "flex justify-end" : "flex justify-start";
+  el.innerHTML = `<div class="chat-bubble max-w-[80%] rounded-lg px-3 py-2 ${role==="user"?"bg-blue-600 text-white":"bg-slate-100"}">${escapeHTML(text)}</div>`;
+  $("chat-log").appendChild(el); $("chat-log").scrollTop = $("chat-log").scrollHeight;
+  return el.querySelector(".chat-bubble");
+}
+window.sendChat = async () => {
+  const msg = $("chat-input").value.trim(); if (!msg) return;
+  $("chat-input").value = "";
+  appendChat("user", msg); CHAT_HISTORY.push({ role:"user", content: msg });
+  const placeholder = appendChat("assistant", "Thinking…");
+  const resp = await authFetch("/api/anthropic", { messages: CHAT_HISTORY });
+  const data = await resp.json();
+  if (!resp.ok) { placeholder.textContent = "Error: " + JSON.stringify(data); return; }
+  placeholder.textContent = data.text || "(no response)";
+  CHAT_HISTORY.push({ role:"assistant", content: data.text || "" });
+};
+
+// ---------- dashboard ----------
+async function loadDashboardStats() {
+  const { count: docCount } = await supabase.from("generated_docs").select("*",{count:"exact",head:true});
+  $("stat-docs").textContent = docCount ?? "0";
+  const [t1,t2,t3] = await Promise.all([
+    supabase.from("time_off").select("*",{count:"exact",head:true}),
+    supabase.from("visit_logs").select("*",{count:"exact",head:true}),
+    supabase.from("applications").select("*",{count:"exact",head:true}),
+  ]);
+  $("stat-forms").textContent = (t1.count||0) + (t2.count||0) + (t3.count||0);
+  // recent
+  const { data: recent } = await supabase.from("generated_docs").select("doc_type,employee,created_at").order("created_at",{ascending:false}).limit(5);
+  $("recent-activity").innerHTML = (recent||[]).map(r => `<div class="flex justify-between border-b last:border-0 py-1"><span>${escapeHTML(r.doc_type)} — ${escapeHTML(r.employee||"")}</span><span class="text-xs text-slate-400">${new Date(r.created_at).toLocaleString()}</span></div>`).join("") || '<div class="text-slate-500">No activity yet.</div>';
+  // backend
+  try {
+    const r = await authFetch("/api/anthropic", { messages: [{role:"user",content:"ping"}], max_tokens: 5 });
+    $("stat-backend").textContent = r.ok ? "Online" : "Proxy unreachable";
+  } catch { $("stat-backend").textContent = "Offline"; }
+}
+loadDashboardStats();
+</script>
+</body>
+</html>

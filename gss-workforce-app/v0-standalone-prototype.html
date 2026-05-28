@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GSS Workforce — Internal Manager App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .nav-link.active { background:#0b3b76; color:#fff; }
+  .nav-link.active .nav-sub-icon { color:#fff; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .doc-output { font-family: Georgia, "Times New Roman", serif; line-height:1.55; }
+  .doc-output h1, .doc-output h2 { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .chat-bubble { white-space: pre-wrap; word-wrap: break-word; }
+  details > summary { cursor: pointer; }
+  textarea { font-family: inherit; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:9999px; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<div class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+    <div class="p-4 border-b border-slate-200">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded bg-[#0b3b76] text-white flex items-center justify-center font-bold">GSS</div>
+        <div>
+          <div class="font-semibold leading-tight">GSS Workforce</div>
+          <div class="text-xs text-slate-500">Manager Console · MI</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto p-3 space-y-1 text-sm">
+      <a data-nav="dashboard" class="nav-link active flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100">
+        <span class="nav-sub-icon">▦</span> Dashboard
+      </a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">Document Generators</div>
+      <a data-nav="onboarding" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✚</span> Onboarding</a>
+      <a data-nav="writeup" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">!</span> Attendance Write-Up</a>
+      <a data-nav="cap" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">§</span> Corrective Action</a>
+      <a data-nav="termination" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✕</span> Termination Docs</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">Employee Forms</div>
+      <a data-nav="timeoff" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">📅</span> Time Off Request</a>
+      <a data-nav="visitlog" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">📋</span> Supervisor Visit Log</a>
+      <a data-nav="application" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">👤</span> Job Application</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">Humanity Admin</div>
+      <a data-nav="timeclocks" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">⏱</span> Time Clocks</a>
+      <a data-nav="shifts" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">📆</span> Shifts</a>
+      <a data-nav="newuser" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">＋</span> New Humanity User</a>
+
+      <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">AI</div>
+      <a data-nav="assistant" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✦</span> Assistant</a>
+      <a data-nav="settings" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">⚙</span> Settings</a>
+    </nav>
+
+    <div class="p-3 border-t border-slate-200 text-[11px] text-slate-500">
+      Prototype · v0.1 · All data stored locally in your browser.
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 overflow-y-auto">
+    <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center">
+      <div>
+        <div id="page-title" class="text-lg font-semibold">Dashboard</div>
+        <div id="page-sub" class="text-xs text-slate-500">Internal tools for Global Security Solutions managers</div>
+      </div>
+      <div class="text-sm text-slate-500" id="today"></div>
+    </header>
+
+    <div class="p-6">
+
+      <!-- DASHBOARD -->
+      <section class="panel active" id="panel-dashboard">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-white rounded-lg p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 uppercase">Documents this week</div>
+            <div class="text-3xl font-bold" id="stat-docs">0</div>
+            <div class="text-xs text-slate-400 mt-1">Write-ups, CAPs, terminations, onboarding letters</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 uppercase">Employee form submissions</div>
+            <div class="text-3xl font-bold" id="stat-forms">0</div>
+            <div class="text-xs text-slate-400 mt-1">Time off, visit log, job applications</div>
+          </div>
+          <div class="bg-white rounded-lg p-4 border border-slate-200">
+            <div class="text-xs text-slate-500 uppercase">AI assistant status</div>
+            <div class="text-base font-semibold mt-1" id="stat-ai">Not configured</div>
+            <div class="text-xs text-slate-400 mt-1"><a class="text-blue-600 underline cursor-pointer" data-nav-link="settings">Add API key in Settings</a></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-5 border border-slate-200">
+            <div class="font-semibold mb-3">Quick actions</div>
+            <div class="grid grid-cols-2 gap-3">
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="onboarding">
+                <div class="font-medium">+ Onboard new hire</div>
+                <div class="text-xs text-slate-500">Generates credentials and welcome letter</div>
+              </button>
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="writeup">
+                <div class="font-medium">! Attendance write-up</div>
+                <div class="text-xs text-slate-500">From CSV or manual entry</div>
+              </button>
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="cap">
+                <div class="font-medium">§ Corrective action</div>
+                <div class="text-xs text-slate-500">Verbal · Written · Final · CAP</div>
+              </button>
+              <button class="border rounded p-3 text-left hover:bg-slate-50" data-nav-link="termination">
+                <div class="font-medium">✕ Termination docs</div>
+                <div class="text-xs text-slate-500">Notice · Separation letter · UIA summary</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg p-5 border border-slate-200">
+            <div class="font-semibold mb-3">Recent activity</div>
+            <div id="recent-activity" class="text-sm text-slate-500">Nothing yet. Generate a document or submit a form to see it here.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ONBOARDING -->
+      <section class="panel" id="panel-onboarding">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">New Hire Onboarding</h2>
+          <p class="text-sm text-slate-500 mb-4">Collect info, auto-generate Humanity credentials, output the standard welcome letter.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">First name</span><input id="ob-first" class="mt-1 w-full border rounded px-3 py-2" placeholder="John" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Last name</span><input id="ob-last" class="mt-1 w-full border rounded px-3 py-2" placeholder="Smith" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Phone</span><input id="ob-phone" class="mt-1 w-full border rounded px-3 py-2" placeholder="(313) 555-0100" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Email</span><input id="ob-email" type="email" class="mt-1 w-full border rounded px-3 py-2" placeholder="employee@email.com" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Date of birth</span><input id="ob-dob" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position assignment</span>
+              <select id="ob-pos" class="mt-1 w-full border rounded px-3 py-2">
+                <option>MI, Detroit Area</option>
+                <option>MI, West MI</option>
+                <option>MI, Tri-Cities</option>
+                <option>MI, Statewide Float</option>
+              </select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Hourly rate</span><input id="ob-rate" type="number" step="0.25" value="16" class="mt-1 w-full border rounded px-3 py-2" /></label>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="generateOnboarding()" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Generate credentials & welcome letter</button>
+            <button onclick="clearForm('ob')" class="border px-4 py-2 rounded">Clear</button>
+          </div>
+        </div>
+
+        <div id="ob-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">Generated</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('ob-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('ob-output','GSS_Welcome_Letter.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div class="bg-slate-50 p-3 rounded"><div class="text-xs text-slate-500">Humanity username</div><div id="ob-username" class="font-mono font-semibold"></div></div>
+            <div class="bg-slate-50 p-3 rounded"><div class="text-xs text-slate-500">Humanity password</div><div id="ob-password" class="font-mono font-semibold"></div></div>
+          </div>
+          <div id="ob-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- WRITE-UP -->
+      <section class="panel" id="panel-writeup">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Attendance Write-Up</h2>
+          <p class="text-sm text-slate-500 mb-4">Drafts are for supervisor review only — facts must be verified before delivery.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee (Last, First)</span><input id="wu-name" class="mt-1 w-full border rounded px-3 py-2" placeholder="Doe, Jane" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="wu-site" class="mt-1 w-full border rounded px-3 py-2" placeholder="Meijer #001" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Date of incident</span><input id="wu-date" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Type</span>
+              <select id="wu-type" class="mt-1 w-full border rounded px-3 py-2">
+                <option>Late Arrival</option>
+                <option>Missed Protos Punch</option>
+                <option>No-Call No-Show</option>
+              </select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Scheduled start</span><input id="wu-sched" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Actual clock-in (blank = missed punch)</span><input id="wu-actual" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Prior history (optional)</span><textarea id="wu-prior" rows="2" class="mt-1 w-full border rounded px-3 py-2" placeholder="e.g., Verbal warning 2026-04-12 for late arrival"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Employee statement (optional)</span><textarea id="wu-stmt" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="generateWriteup()" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Generate write-up</button>
+            <button onclick="clearForm('wu')" class="border px-4 py-2 rounded">Clear</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h3 class="font-semibold mb-2">Or import a Humanity CSV</h3>
+          <p class="text-xs text-slate-500 mb-3">Upload a Humanity Attendance Report CSV. Rows where scheduled start is &gt;5 min before clock-in (or with missing punches) become draft write-ups.</p>
+          <input type="file" id="wu-csv" accept=".csv" class="text-sm" />
+          <div id="wu-csv-summary" class="text-sm mt-3"></div>
+        </div>
+
+        <div id="wu-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">Draft write-up</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('wu-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('wu-output','GSS_WriteUp.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div id="wu-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- CAP -->
+      <section class="panel" id="panel-cap">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Corrective Action Document</h2>
+          <p class="text-sm text-slate-500 mb-4">Verbal / Written / Final warning or full CAP. Draft only — requires management review.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee (Last, First)</span><input id="cap-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position</span><input id="cap-pos" class="mt-1 w-full border rounded px-3 py-2" placeholder="Security Officer" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="cap-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Document type</span>
+              <select id="cap-type" class="mt-1 w-full border rounded px-3 py-2">
+                <option>Verbal Warning Memo</option>
+                <option>Written Warning</option>
+                <option>Final Warning</option>
+                <option>Corrective Action Plan (CAP)</option>
+              </select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Issue category</span>
+              <select id="cap-cat" class="mt-1 w-full border rounded px-3 py-2">
+                <option>Attendance</option>
+                <option>Conduct</option>
+                <option>Performance</option>
+                <option>Policy Violation</option>
+                <option>Post Order Violation</option>
+              </select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Prepared by</span><input id="cap-by" class="mt-1 w-full border rounded px-3 py-2" placeholder="Supervisor name / title" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Specific incident(s)</span><textarea id="cap-incident" rows="3" class="mt-1 w-full border rounded px-3 py-2" placeholder="Dates, what occurred, who witnessed/documented"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Prior history</span><textarea id="cap-prior" rows="2" class="mt-1 w-full border rounded px-3 py-2" placeholder="If none, leave blank"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Employee statement</span><textarea id="cap-stmt" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Required improvement</span><textarea id="cap-improve" rows="2" class="mt-1 w-full border rounded px-3 py-2" placeholder="Specific, measurable expectations"></textarea></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Review period</span><input id="cap-review" class="mt-1 w-full border rounded px-3 py-2" placeholder="30 / 60 / 90 days" /></label>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="generateCAP()" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Generate document</button>
+            <button onclick="clearForm('cap')" class="border px-4 py-2 rounded">Clear</button>
+          </div>
+        </div>
+
+        <div id="cap-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">Draft document</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('cap-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('cap-output','GSS_Corrective_Action.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div id="cap-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- TERMINATION -->
+      <section class="panel" id="panel-termination">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Termination & Separation Documents</h2>
+          <p class="text-sm text-slate-500 mb-4">Draft only. UIA summaries should be reviewed by HR/legal before submission.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee (Last, First)</span><input id="tm-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position</span><input id="tm-pos" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="tm-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Last day of employment</span><input id="tm-last" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Separation type</span>
+              <select id="tm-type" class="mt-1 w-full border rounded px-3 py-2">
+                <option>Involuntary — Attendance</option>
+                <option>Involuntary — Conduct</option>
+                <option>Involuntary — Policy Violation</option>
+                <option>Involuntary — Performance</option>
+                <option>Involuntary — Job Abandonment</option>
+                <option>Voluntary Resignation</option>
+                <option>Layoff / RIF</option>
+                <option>End of Assignment</option>
+              </select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Prepared by</span><input id="tm-by" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Final incident / triggering event</span><textarea id="tm-incident" rows="3" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Prior documentation (warnings, CAPs, by date and type)</span><textarea id="tm-prior" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+            <label class="block md:col-span-2"><span class="text-xs font-medium text-slate-600">Employee response/statement</span><textarea id="tm-stmt" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2 items-center">
+            <span class="text-xs text-slate-500 mr-2">Generate which docs:</span>
+            <label class="text-sm"><input type="checkbox" id="tm-notice" checked> Termination Notice</label>
+            <label class="text-sm"><input type="checkbox" id="tm-sep" checked> Separation Letter</label>
+            <label class="text-sm"><input type="checkbox" id="tm-uia"> UIA Summary</label>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="generateTermination()" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Generate</button>
+            <button onclick="clearForm('tm')" class="border px-4 py-2 rounded">Clear</button>
+          </div>
+        </div>
+
+        <div id="tm-result" class="hidden bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">Draft documents</h3>
+            <div class="flex gap-2">
+              <button onclick="copyOutput('tm-output')" class="text-sm border px-3 py-1 rounded">Copy</button>
+              <button onclick="downloadDoc('tm-output','GSS_Termination.doc')" class="text-sm border px-3 py-1 rounded">Download .doc</button>
+            </div>
+          </div>
+          <div id="tm-output" class="doc-output bg-slate-50 p-5 rounded border whitespace-pre-wrap text-sm"></div>
+        </div>
+      </section>
+
+      <!-- EMPLOYEE FORMS: TIME OFF -->
+      <section class="panel" id="panel-timeoff">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h2 class="text-lg font-semibold mb-3">Time Off Request</h2>
+            <div class="space-y-3">
+              <label class="block"><span class="text-xs font-medium text-slate-600">Employee name</span><input id="to-name" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="to-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="text-xs font-medium text-slate-600">Start date</span><input id="to-start" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+                <label class="block"><span class="text-xs font-medium text-slate-600">End date</span><input id="to-end" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              </div>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Reason</span>
+                <select id="to-reason" class="mt-1 w-full border rounded px-3 py-2">
+                  <option>Vacation</option>
+                  <option>Personal</option>
+                  <option>Medical</option>
+                  <option>Bereavement</option>
+                  <option>Other</option>
+                </select>
+              </label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Notes</span><textarea id="to-notes" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <button onclick="submitForm('timeoff')" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Submit request</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="font-semibold mb-3">Recent requests</h3>
+            <div id="list-timeoff" class="space-y-2 text-sm"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VISIT LOG -->
+      <section class="panel" id="panel-visitlog">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h2 class="text-lg font-semibold mb-3">Supervisor Visit Log — Meijer Site</h2>
+            <div class="space-y-3">
+              <label class="block"><span class="text-xs font-medium text-slate-600">Supervisor</span><input id="vl-sup" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Site</span><input id="vl-site" class="mt-1 w-full border rounded px-3 py-2" placeholder="Meijer #..." /></label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="text-xs font-medium text-slate-600">Date</span><input id="vl-date" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+                <label class="block"><span class="text-xs font-medium text-slate-600">Arrival time</span><input id="vl-time" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              </div>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Officer on duty</span><input id="vl-officer" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">In uniform &amp; on post?</span>
+                <select id="vl-uniform" class="mt-1 w-full border rounded px-3 py-2"><option>Yes</option><option>No</option></select>
+              </label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Observations</span><textarea id="vl-obs" rows="3" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Action items / follow-up</span><textarea id="vl-action" rows="2" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <button onclick="submitForm('visitlog')" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Log visit</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="font-semibold mb-3">Recent visits</h3>
+            <div id="list-visitlog" class="space-y-2 text-sm"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APPLICATION -->
+      <section class="panel" id="panel-application">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h2 class="text-lg font-semibold mb-3">Job Application</h2>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="text-xs font-medium text-slate-600">First name</span><input id="ap-first" class="mt-1 w-full border rounded px-3 py-2" /></label>
+                <label class="block"><span class="text-xs font-medium text-slate-600">Last name</span><input id="ap-last" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              </div>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Phone</span><input id="ap-phone" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Email</span><input id="ap-email" type="email" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">City / Area</span><input id="ap-city" class="mt-1 w-full border rounded px-3 py-2" /></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Position interested in</span>
+                <select id="ap-pos" class="mt-1 w-full border rounded px-3 py-2">
+                  <option>Security Officer</option>
+                  <option>Site Supervisor</option>
+                  <option>Field Supervisor</option>
+                  <option>Dispatcher</option>
+                </select>
+              </label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Prior security experience</span><textarea id="ap-exp" rows="3" class="mt-1 w-full border rounded px-3 py-2"></textarea></label>
+              <label class="block"><span class="text-xs font-medium text-slate-600">Availability</span>
+                <select id="ap-avail" class="mt-1 w-full border rounded px-3 py-2"><option>Full-time</option><option>Part-time</option><option>As-needed</option></select>
+              </label>
+              <button onclick="submitForm('application')" class="bg-[#0b3b76] text-white px-4 py-2 rounded hover:opacity-90">Submit application</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-6 border border-slate-200">
+            <h3 class="font-semibold mb-3">Recent applications</h3>
+            <div id="list-application" class="space-y-2 text-sm"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TIME CLOCKS -->
+      <section class="panel" id="panel-timeclocks">
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="text-lg font-semibold">Time Clocks — Humanity</h2>
+              <p class="text-xs text-slate-500">Prototype view. Real data requires Humanity API/automation (see Settings).</p>
+            </div>
+            <div class="flex gap-2">
+              <input type="date" id="tc-date" class="border rounded px-2 py-1 text-sm" />
+              <button onclick="loadMockClocks()" class="border rounded px-3 py-1 text-sm">Refresh</button>
+            </div>
+          </div>
+          <table class="w-full text-sm">
+            <thead class="text-left text-xs uppercase text-slate-500 border-b">
+              <tr><th class="py-2">Employee</th><th>Site</th><th>Scheduled</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr>
+            </thead>
+            <tbody id="tc-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SHIFTS -->
+      <section class="panel" id="panel-shifts">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Create / Edit Shift</h2>
+          <p class="text-xs text-slate-500 mb-4">Confirms shift details before sending to Humanity. Prototype only — submission writes to a local queue.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employee</span><input id="sh-emp" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Site / Position</span><input id="sh-site" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Date</span><input id="sh-date" type="date" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Start</span><input id="sh-start" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">End</span><input id="sh-end" type="time" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Notes</span><input id="sh-notes" class="mt-1 w-full border rounded px-3 py-2" /></label>
+          </div>
+          <button onclick="queueShift()" class="mt-4 bg-[#0b3b76] text-white px-4 py-2 rounded">Queue shift</button>
+        </div>
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <h3 class="font-semibold mb-3">Shift queue (pending push to Humanity)</h3>
+          <div id="list-shifts" class="space-y-2 text-sm"></div>
+        </div>
+      </section>
+
+      <!-- NEW USER -->
+      <section class="panel" id="panel-newuser">
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <h2 class="text-lg font-semibold mb-1">Create New Humanity User</h2>
+          <p class="text-xs text-slate-500 mb-4">Generates the same username/password convention as the onboarding skill. Prototype: outputs the payload for review; does not call the Humanity API.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-xs font-medium text-slate-600">First name</span><input id="nu-first" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Last name</span><input id="nu-last" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Email</span><input id="nu-email" type="email" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Position assignment</span>
+              <select id="nu-pos" class="mt-1 w-full border rounded px-3 py-2">
+                <option>MI, Detroit Area</option>
+                <option>MI, West MI</option>
+                <option>MI, Tri-Cities</option>
+                <option>MI, Statewide Float</option>
+              </select>
+            </label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Hourly rate</span><input id="nu-rate" type="number" step="0.25" value="16" class="mt-1 w-full border rounded px-3 py-2" /></label>
+            <label class="block"><span class="text-xs font-medium text-slate-600">Employment type</span>
+              <select id="nu-emp" class="mt-1 w-full border rounded px-3 py-2"><option>Full-time</option><option>Part-time</option><option>As-needed</option></select>
+            </label>
+          </div>
+          <button onclick="previewNewUser()" class="mt-4 bg-[#0b3b76] text-white px-4 py-2 rounded">Preview payload</button>
+          <pre id="nu-payload" class="hidden mt-4 bg-slate-900 text-green-200 text-xs p-4 rounded overflow-auto"></pre>
+        </div>
+      </section>
+
+      <!-- ASSISTANT -->
+      <section class="panel" id="panel-assistant">
+        <div class="bg-white rounded-lg border border-slate-200 flex flex-col" style="height: calc(100vh - 180px);">
+          <div class="p-4 border-b flex justify-between items-center">
+            <div>
+              <div class="font-semibold">GSS AI Assistant</div>
+              <div class="text-xs text-slate-500">Ask about a write-up, paste an incident, or request a draft. Powered by Claude when an API key is set.</div>
+            </div>
+            <div id="ai-status" class="text-xs pill bg-amber-100 text-amber-800">No API key</div>
+          </div>
+          <div id="chat-log" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+          <div class="p-3 border-t flex gap-2">
+            <textarea id="chat-input" rows="2" class="flex-1 border rounded px-3 py-2 text-sm" placeholder="e.g., Draft a write-up for J. Smith — 27 min late on 5/26 at Meijer #54, first offense."></textarea>
+            <button onclick="sendChat()" class="bg-[#0b3b76] text-white px-4 rounded">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="panel" id="panel-settings">
+        <div class="bg-white rounded-lg p-6 border border-slate-200 mb-6">
+          <h2 class="text-lg font-semibold mb-1">Settings</h2>
+          <p class="text-sm text-slate-500 mb-4">Keys are stored only in your browser's localStorage. Clear them anytime.</p>
+          <div class="space-y-3">
+            <label class="block">
+              <span class="text-xs font-medium text-slate-600">Anthropic API key (for the AI Assistant)</span>
+              <input id="cfg-key" type="password" class="mt-1 w-full border rounded px-3 py-2 font-mono" placeholder="sk-ant-..." />
+              <p class="text-xs text-slate-400 mt-1">Get a key at console.anthropic.com. Required only for AI Assistant features.</p>
+            </label>
+            <label class="block">
+              <span class="text-xs font-medium text-slate-600">Default site / region</span>
+              <input id="cfg-region" class="mt-1 w-full border rounded px-3 py-2" placeholder="MI, Detroit Area" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-medium text-slate-600">Manager name (used in document headers)</span>
+              <input id="cfg-manager" class="mt-1 w-full border rounded px-3 py-2" />
+            </label>
+            <div class="flex gap-2 pt-2">
+              <button onclick="saveSettings()" class="bg-[#0b3b76] text-white px-4 py-2 rounded">Save</button>
+              <button onclick="clearAllData()" class="border border-red-300 text-red-600 px-4 py-2 rounded">Clear all local data</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <h3 class="font-semibold mb-2">About this prototype</h3>
+          <ul class="text-sm text-slate-600 list-disc pl-5 space-y-1">
+            <li>Single-file HTML/JS app — open <code>index.html</code> in any modern browser. No build step, no server.</li>
+            <li>All data (submissions, settings) stays in your browser's localStorage. Nothing is sent to GSS servers in this prototype.</li>
+            <li>Humanity actions (time clocks, new user, shifts) are mocked. Wiring them to the real Humanity API requires a backend with stored admin credentials.</li>
+            <li>AI Assistant calls Anthropic's API directly from your browser when a key is provided. For production, route through a backend so the key isn't exposed.</li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ---------- helpers ----------
+const $ = (id) => document.getElementById(id);
+const fmtDate = (d) => d ? new Date(d + 'T00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '[date]';
+const fmt12 = (t) => {
+  if (!t) return '[time]';
+  const [h,m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = ((h + 11) % 12) + 1;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+};
+
+const PAGE_TITLES = {
+  dashboard:    ['Dashboard', 'Internal tools for Global Security Solutions managers'],
+  onboarding:   ['Onboarding', 'New hire workflow — credentials, welcome letter, Humanity prep'],
+  writeup:      ['Attendance Write-Up', 'Draft attendance documents from manual entry or Humanity CSV'],
+  cap:          ['Corrective Action', 'Verbal · Written · Final · CAP'],
+  termination:  ['Termination Documents', 'Notice · Separation letter · UIA summary'],
+  timeoff:      ['Time Off Request', 'Employee form'],
+  visitlog:     ['Supervisor Visit Log', 'Site visit documentation'],
+  application:  ['Job Application', 'Inbound applicant intake'],
+  timeclocks:   ['Time Clocks', 'Humanity multi-employee timesheet review'],
+  shifts:       ['Shifts', 'Create / edit / queue shifts'],
+  newuser:      ['New Humanity User', 'Provision a scheduling account'],
+  assistant:    ['AI Assistant', 'Chat with Claude — context-aware to your GSS workflows'],
+  settings:     ['Settings', 'API keys and local data'],
+};
+
+function go(key) {
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.toggle('active', n.dataset.nav === key));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + key));
+  const t = PAGE_TITLES[key] || [key, ''];
+  $('page-title').textContent = t[0];
+  $('page-sub').textContent = t[1];
+  if (key === 'timeclocks' && !$('tc-rows').children.length) loadMockClocks();
+  refreshLists();
+}
+
+document.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => go(el.dataset.nav)));
+document.querySelectorAll('[data-nav-link]').forEach(el => el.addEventListener('click', () => go(el.dataset.navLink)));
+
+// today date in header
+$('today').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+// ---------- local storage ----------
+const KV = {
+  get(k, def){ try{ return JSON.parse(localStorage.getItem(k)) ?? def; } catch{ return def; } },
+  set(k,v){ localStorage.setItem(k, JSON.stringify(v)); },
+  push(k,v){ const a = KV.get(k, []); a.unshift(v); KV.set(k,a); return a; },
+};
+
+function loadSettings() {
+  $('cfg-key').value     = KV.get('gss.apiKey', '');
+  $('cfg-region').value  = KV.get('gss.region', 'MI, Detroit Area');
+  $('cfg-manager').value = KV.get('gss.manager', '');
+  updateAIStatus();
+}
+function saveSettings() {
+  KV.set('gss.apiKey',  $('cfg-key').value.trim());
+  KV.set('gss.region',  $('cfg-region').value.trim());
+  KV.set('gss.manager', $('cfg-manager').value.trim());
+  updateAIStatus();
+  alert('Settings saved locally.');
+}
+function clearAllData(){
+  if (confirm('Clear all local data — settings, submissions, queued shifts? This cannot be undone.')) {
+    localStorage.clear();
+    location.reload();
+  }
+}
+function updateAIStatus() {
+  const has = !!KV.get('gss.apiKey', '');
+  $('ai-status').className = 'text-xs pill ' + (has ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800');
+  $('ai-status').textContent = has ? 'Ready' : 'No API key';
+  $('stat-ai').textContent = has ? 'Ready' : 'Not configured';
+}
+
+// ---------- form helpers ----------
+function clearForm(prefix){
+  document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el => {
+    if (el.tagName === 'INPUT' && el.type === 'checkbox') el.checked = false;
+    else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') el.value = '';
+  });
+}
+function copyOutput(id){
+  const el = $(id);
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    el.classList.add('ring','ring-emerald-300');
+    setTimeout(()=>el.classList.remove('ring','ring-emerald-300'), 600);
+  });
+}
+function downloadDoc(id, filename){
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title></head><body><pre style="font-family:Georgia,serif;white-space:pre-wrap;">${$(id).innerText.replace(/[<&>]/g, c=>({'<':'&lt;','&':'&amp;','>':'&gt;'}[c]))}</pre></body></html>`;
+  const blob = new Blob([html], {type:'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  bumpStat('docs');
+}
+
+function bumpStat(kind){
+  const key = 'gss.stat.' + kind;
+  const n = KV.get(key, 0) + 1;
+  KV.set(key, n);
+  renderStats();
+  KV.push('gss.recent', { kind, at: new Date().toISOString() });
+  renderRecent();
+}
+function renderStats(){
+  $('stat-docs').textContent  = KV.get('gss.stat.docs', 0);
+  $('stat-forms').textContent = KV.get('gss.stat.forms', 0);
+}
+function renderRecent(){
+  const items = (KV.get('gss.recent', []) || []).slice(0,6);
+  if (!items.length) {
+    $('recent-activity').innerHTML = '<div class="text-slate-500">Nothing yet. Generate a document or submit a form to see it here.</div>';
+    return;
+  }
+  $('recent-activity').innerHTML = items.map(i => {
+    const label = ({docs:'Document generated', forms:'Form submitted', shift:'Shift queued'})[i.kind] || i.kind;
+    return `<div class="flex justify-between border-b last:border-0 py-1"><span>${label}</span><span class="text-xs text-slate-400">${new Date(i.at).toLocaleString()}</span></div>`;
+  }).join('');
+}
+
+// ---------- ONBOARDING ----------
+function generateOnboarding(){
+  const first = $('ob-first').value.trim();
+  const last  = $('ob-last').value.trim();
+  if (!first || !last) return alert('First and last name required.');
+  const username = (first + last + '5').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const password = first.charAt(0).toUpperCase() + (first.slice(1) + last + '5').toLowerCase().replace(/[^a-z0-9]/g,'');
+  $('ob-username').textContent = username;
+  $('ob-password').textContent = password;
+  $('ob-output').innerText =
+`Welcome to Global Security Solutions,
+
+Your new-hire paperwork has been sent to you electronically through Adobe Sign for completion. Please complete all required documents using the Adobe Sign link you received.
+
+In addition, our onboarding site is available, offering access to the required forms as well as the employee handbook and a range of training materials.
+
+To familiarize yourself with our policies and procedures, please take a moment to review the training materials available at the following link:
+GSS MI Guard Guide
+
+If you have trouble accessing Adobe Sign or the onboarding site, please let us know.
+
+For the I-9, be sure to complete page 1 and the top portion of page 2. You will need to provide either one document from List A or one document each from Lists B and C. You will be prompted to upload images of these documents through the onboarding process.
+
+A voided check is not required for the direct deposit form, but please ensure your account and routing numbers are accurate and easy to read.
+
+Payroll Information
+Our pay cycle runs weekly, Monday through Sunday, with payday every Friday via direct deposit.
+Your first paycheck will cover your first two weeks of work.
+Paycheck stubs are sent by email and require the last four digits of your Social Security number to open.
+
+Employee Scheduling
+We use the TCP Humanity Employee Scheduling app.
+
+Your username is:
+${username}
+
+Your password is:
+${password}
+
+Note:
+The first letter is capitalized in the password but lowercase in the username.
+Please sign in using the username above.
+Do not try to sign in using your email address.
+Please download the app so you can view and request available shifts.
+When requesting shifts, it is best to also follow up by text message with the office / Command Center number to make sure your request is approved.
+
+By signing in to the TCP Humanity app, you agree to read the GSS Employee Handbook. The handbook can be found under "Files" in the app menu.
+
+Jay D. Soulliere Jr.
+Global Security Solutions Inc.
+jay@globalsecuritysolutions.com
+Tel: 313-484-4845 | 866-GLO-SECU`;
+  $('ob-result').classList.remove('hidden');
+  bumpStat('docs');
+}
+
+// ---------- WRITE-UP ----------
+function generateWriteup(){
+  const name = $('wu-name').value.trim() || '[Employee]';
+  const site = $('wu-site').value.trim() || '[Site]';
+  const date = fmtDate($('wu-date').value);
+  const type = $('wu-type').value;
+  const sched = $('wu-sched').value, actual = $('wu-actual').value;
+  let summary;
+  if (type === 'Missed Protos Punch' || !actual) {
+    summary = `On ${date}, ${name} was scheduled to begin their shift at ${fmt12(sched)} at ${site}. According to the Humanity attendance record, no valid Protos punch was recorded for this shift. This reflects a missed Protos punch.`;
+  } else if (type === 'No-Call No-Show') {
+    summary = `On ${date}, ${name} was scheduled to begin their shift at ${fmt12(sched)} at ${site}. According to the Humanity attendance record, no clock-in occurred and the employee did not contact the Command Center prior to the shift. This reflects a no-call no-show.`;
+  } else {
+    const diff = (sched && actual) ? Math.round(((parseTime(actual) - parseTime(sched)) / 60000)) : null;
+    const lateMsg = diff != null ? `a ${diff}-minute late arrival` : 'a late arrival';
+    summary = `On ${date}, ${name} was scheduled to begin their shift at ${fmt12(sched)} at ${site}. According to the Humanity attendance record, the employee clocked in at ${fmt12(actual)}. This reflects ${lateMsg}.`;
+  }
+  $('wu-output').innerText =
+`ATTENDANCE WRITE-UP — DRAFT (for supervisor review)
+
+Employee:        ${name}
+Site:            ${site}
+Date of Incident: ${date}
+Type:            ${type}
+
+Summary of Record:
+${summary}
+
+Prior History:
+${$('wu-prior').value.trim() || 'Prior attendance history was not provided for this review.'}
+
+Employee Statement:
+${$('wu-stmt').value.trim() || 'No statement has been obtained at this time.'}
+
+Next Steps:
+This draft is prepared for supervisor review. Management should verify the record, obtain any employee statement, and determine the appropriate disciplinary step consistent with GSS attendance policy before finalizing.`;
+  $('wu-result').classList.remove('hidden');
+  bumpStat('docs');
+}
+function parseTime(t){ const [h,m] = t.split(':').map(Number); const d = new Date(0); d.setHours(h,m); return d.getTime(); }
+
+// CSV import
+$('wu-csv').addEventListener('change', (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const text = r.result;
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    const header = lines[0].split(',');
+    const drafted = [];
+    const skipped = [];
+    for (let i=1; i<lines.length; i++){
+      const cols = lines[i].split(',');
+      const row = Object.fromEntries(header.map((h,j) => [h.trim().toLowerCase(), (cols[j]||'').trim()]));
+      const name = row['employee'] || row['name'] || '[unknown]';
+      const sched = row['scheduled'] || row['scheduled start'] || '';
+      const actual = row['clock in'] || row['actual'] || '';
+      if (!sched) { skipped.push(`${name} — no scheduled start in row`); continue; }
+      if (!actual) { drafted.push({name, sched, actual:'', type:'Missed Protos Punch'}); continue; }
+      const d = (parseTime(actual) - parseTime(sched)) / 60000;
+      if (d > 5) drafted.push({name, sched, actual, type:'Late Arrival', diff: Math.round(d)});
+      else skipped.push(`${name} — within 5-min threshold (${Math.round(d)} min)`);
+    }
+    $('wu-csv-summary').innerHTML =
+      `<div class="font-medium mb-1">${drafted.length} draftable row(s), ${skipped.length} skipped.</div>` +
+      (drafted.length ? `<ul class="list-disc pl-5 text-slate-600">${drafted.slice(0,8).map(d => `<li>${d.name} — ${d.type}${d.diff?` (${d.diff} min)`:''}</li>`).join('')}</ul>` : '') +
+      (skipped.length ? `<details class="mt-2"><summary class="text-slate-500">Rows not drafted (${skipped.length})</summary><ul class="list-disc pl-5 text-slate-500 text-xs">${skipped.map(s=>`<li>${s}</li>`).join('')}</ul></details>` : '');
+  };
+  r.readAsText(file);
+});
+
+// ---------- CAP ----------
+function generateCAP(){
+  const t = $('cap-type').value;
+  const consequences = ({
+    'Verbal Warning Memo': 'Continued issues may result in formal written documentation and further corrective action.',
+    'Written Warning':     'Further violations may result in additional disciplinary action up to and including termination.',
+    'Final Warning':       'Any further occurrence of this issue may result in immediate termination of employment.',
+    'Corrective Action Plan (CAP)': 'Failure to meet the improvement expectations within the review period may result in additional disciplinary action up to and including termination.',
+  })[t];
+
+  $('cap-output').innerText =
+`CORRECTIVE ACTION — ${t.toUpperCase()}
+
+Employee:      ${$('cap-name').value.trim() || '[Last, First]'}
+Position:      ${$('cap-pos').value.trim() || '[Title]'}
+Site:          ${$('cap-site').value.trim() || '[Site]'}
+Date of Document: ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}
+Prepared by:   ${$('cap-by').value.trim() || 'To be completed by supervisor'}
+
+Issue:
+${$('cap-cat').value} — see incident summary below.
+
+Incident Summary:
+${$('cap-incident').value.trim() || '[Date-by-date account of specific incident(s) based on documented records.]'}
+
+Prior History:
+${$('cap-prior').value.trim() || 'No prior disciplinary history was provided for this review.'}
+
+Employee Statement:
+${$('cap-stmt').value.trim() || 'No employee statement has been obtained at this time.'}
+
+Required Improvement:
+${$('cap-improve').value.trim() || '[Specific, measurable expectations going forward.]'}
+
+Consequences of Non-Compliance:
+${consequences}
+
+Review Period:
+${$('cap-review').value.trim() || 'N/A'}
+
+— This document is a draft prepared for management review. Verify all facts before finalizing. Employee signature line and HR copy instructions should be added per GSS standard process.`;
+  $('cap-result').classList.remove('hidden');
+  bumpStat('docs');
+}
+
+// ---------- TERMINATION ----------
+function generateTermination(){
+  const name = $('tm-name').value.trim() || '[Last, First]';
+  const pos  = $('tm-pos').value.trim() || '[Title]';
+  const site = $('tm-site').value.trim() || '[Site]';
+  const last = fmtDate($('tm-last').value);
+  const type = $('tm-type').value;
+  const by   = $('tm-by').value.trim() || 'To be completed';
+  const incident = $('tm-incident').value.trim();
+  const prior = $('tm-prior').value.trim();
+  const stmt = $('tm-stmt').value.trim();
+
+  const parts = [];
+
+  if ($('tm-notice').checked) {
+    parts.push(
+`NOTICE OF EMPLOYMENT TERMINATION
+
+Employee:                 ${name}
+Position:                 ${pos}
+Site:                     ${site}
+Effective Date of Termination: ${last}
+
+This letter serves as formal notice that your employment with Global Security Solutions is terminated effective ${last}.
+
+Reason for Termination: ${type}${incident ? `, following the incident on record described as: "${incident.split('\n')[0]}".` : '.'}
+
+Please return all company-issued equipment, uniforms, access credentials, and post orders to your supervisor by the effective date above.
+
+Prepared by: ${by}`);
+  }
+
+  if ($('tm-sep').checked) {
+    parts.push(
+`SEPARATION LETTER
+
+Employee:                ${name}
+Position:                ${pos}
+Site:                    ${site}
+Date:                    ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}
+Effective Date of Separation: ${last}
+
+Factual narrative:
+${incident || '[Full factual narrative of separation: reason, timeline of relevant events.]'}
+
+Prior documentation:
+${prior || 'No prior disciplinary documentation was provided for this letter.'}
+
+Employee response:
+${stmt || 'No employee statement was obtained.'}
+
+Please return all company property by the effective date above.
+
+This letter is a record of the employment separation and is maintained in the employee's file. It does not constitute an admission of any claim.
+
+Prepared by: ${by}`);
+  }
+
+  if ($('tm-uia').checked) {
+    parts.push(
+`UIA SEPARATION SUMMARY — CONFIDENTIAL
+
+Claimant:          ${name}
+Former Position:   ${pos}
+Site:              ${site}
+Last Day of Work:  ${last}
+Reason for Separation: ${type}
+
+Factual Summary:
+${incident || '[Chronological account of documented events leading to separation. Include dates, specific policy violations or incidents.]'}
+
+Prior Documentation on File:
+${prior || 'No prior written disciplinary documentation was provided for this summary.'}
+
+Employee Statement:
+${stmt || 'No statement was obtained from the employee prior to separation.'}
+
+This summary is prepared for internal review and potential UIA response purposes. It should be reviewed by qualified HR or legal counsel before submission to the Michigan UIA.`);
+  }
+
+  $('tm-output').innerText = parts.join('\n\n———\n\n');
+  $('tm-result').classList.remove('hidden');
+  bumpStat('docs');
+}
+
+// ---------- EMPLOYEE FORMS ----------
+function submitForm(kind){
+  let payload;
+  if (kind === 'timeoff') {
+    payload = {
+      name: $('to-name').value, site: $('to-site').value,
+      start: $('to-start').value, end: $('to-end').value,
+      reason: $('to-reason').value, notes: $('to-notes').value
+    };
+    if (!payload.name) return alert('Employee name required.');
+  } else if (kind === 'visitlog') {
+    payload = {
+      sup: $('vl-sup').value, site: $('vl-site').value,
+      date: $('vl-date').value, time: $('vl-time').value,
+      officer: $('vl-officer').value, uniform: $('vl-uniform').value,
+      obs: $('vl-obs').value, action: $('vl-action').value
+    };
+    if (!payload.sup || !payload.site) return alert('Supervisor and site required.');
+  } else if (kind === 'application') {
+    payload = {
+      first: $('ap-first').value, last: $('ap-last').value,
+      phone: $('ap-phone').value, email: $('ap-email').value,
+      city: $('ap-city').value, position: $('ap-pos').value,
+      exp: $('ap-exp').value, avail: $('ap-avail').value
+    };
+    if (!payload.first || !payload.last) return alert('Name required.');
+  }
+  payload.submittedAt = new Date().toISOString();
+  KV.push('gss.forms.' + kind, payload);
+  KV.set('gss.stat.forms', KV.get('gss.stat.forms',0) + 1);
+  KV.push('gss.recent', { kind:'forms', at: payload.submittedAt });
+  alert('Submitted.');
+  document.querySelectorAll(`#panel-${kind} input, #panel-${kind} textarea`).forEach(el => el.value = '');
+  refreshLists();
+  renderStats();
+  renderRecent();
+}
+
+function refreshLists(){
+  ['timeoff','visitlog','application'].forEach(kind => {
+    const list = $('list-' + kind);
+    if (!list) return;
+    const items = KV.get('gss.forms.' + kind, []) || [];
+    if (!items.length) { list.innerHTML = '<div class="text-slate-400 text-sm">No submissions yet.</div>'; return; }
+    list.innerHTML = items.slice(0,10).map(i => {
+      const title = i.name || (i.first ? `${i.first} ${i.last}` : i.sup) || 'Submission';
+      const sub = i.site ? `${i.site}${i.date?` · ${i.date}`:''}` : (i.position || i.reason || '');
+      return `<div class="border rounded p-2"><div class="font-medium">${escapeHTML(title)}</div><div class="text-xs text-slate-500">${escapeHTML(sub)} · ${new Date(i.submittedAt).toLocaleString()}</div></div>`;
+    }).join('');
+  });
+
+  // shifts
+  const sList = $('list-shifts');
+  if (sList) {
+    const items = KV.get('gss.shifts', []) || [];
+    if (!items.length) sList.innerHTML = '<div class="text-slate-400">No queued shifts.</div>';
+    else sList.innerHTML = items.map(s =>
+      `<div class="border rounded p-2 flex justify-between"><span><span class="font-medium">${escapeHTML(s.emp)}</span> · ${escapeHTML(s.site)} · ${s.date} ${s.start}–${s.end}</span><span class="text-xs text-slate-500">${s.notes||''}</span></div>`
+    ).join('');
+  }
+}
+function escapeHTML(s){ return String(s||'').replace(/[<&>"]/g, c=>({'<':'&lt;','&':'&amp;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ---------- HUMANITY MOCK ----------
+const MOCK_CLOCKS = [
+  { emp:'Doe, Jane',     site:'Meijer #54',    sched:'06:00–14:00', in:'06:04', out:'14:02', hrs:7.97, status:'OK' },
+  { emp:'Smith, John',   site:'Meijer #145',   sched:'14:00–22:00', in:'14:27', out:'22:01', hrs:7.57, status:'Late' },
+  { emp:'Brown, Aisha',  site:'Meijer #62',    sched:'22:00–06:00', in:'21:55', out:'—',      hrs:'—',  status:'Missing punch' },
+  { emp:'Garcia, Luis',  site:'Meijer #112',   sched:'06:00–14:00', in:'05:58', out:'14:00', hrs:8.03, status:'OK' },
+  { emp:'Nguyen, Mai',   site:'Meijer #21',    sched:'14:00–22:00', in:'—',     out:'—',      hrs:'—',  status:'No-call no-show' },
+];
+function loadMockClocks(){
+  $('tc-rows').innerHTML = MOCK_CLOCKS.map(r => {
+    const pill = r.status === 'OK'
+      ? 'bg-emerald-100 text-emerald-800'
+      : r.status === 'Late'
+        ? 'bg-amber-100 text-amber-800'
+        : 'bg-red-100 text-red-800';
+    return `<tr class="border-b">
+      <td class="py-2">${r.emp}</td><td>${r.site}</td><td>${r.sched}</td>
+      <td>${r.in}</td><td>${r.out}</td><td>${r.hrs}</td>
+      <td><span class="pill ${pill}">${r.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function queueShift(){
+  const s = {
+    emp: $('sh-emp').value, site: $('sh-site').value,
+    date: $('sh-date').value, start: $('sh-start').value,
+    end: $('sh-end').value, notes: $('sh-notes').value,
+    queuedAt: new Date().toISOString()
+  };
+  if (!s.emp || !s.date) return alert('Employee and date required.');
+  KV.push('gss.shifts', s);
+  KV.push('gss.recent', { kind:'shift', at: s.queuedAt });
+  refreshLists();
+  renderRecent();
+  ['sh-emp','sh-site','sh-date','sh-start','sh-end','sh-notes'].forEach(id => $(id).value = '');
+  alert('Shift queued. In production this would push to Humanity via API.');
+}
+
+function previewNewUser(){
+  const first = $('nu-first').value.trim();
+  const last  = $('nu-last').value.trim();
+  if (!first || !last) return alert('First and last name required.');
+  const username = (first + last + '5').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const password = first.charAt(0).toUpperCase() + (first.slice(1) + last + '5').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const payload = {
+    first_name: first,
+    last_name: last,
+    email: $('nu-email').value,
+    username, password,
+    hourly_rate: parseFloat($('nu-rate').value || '16'),
+    position_assignment: $('nu-pos').value,
+    employment_type: $('nu-emp').value,
+    send_activation: false,
+    manually_activate: true
+  };
+  const el = $('nu-payload');
+  el.textContent = JSON.stringify(payload, null, 2);
+  el.classList.remove('hidden');
+}
+
+// ---------- CHAT ----------
+const SYS_PROMPT = `You are the GSS Workforce assistant for Global Security Solutions (Michigan). You help supervisors draft attendance write-ups, corrective action plans, termination notices, separation letters, UIA summaries, and onboarding materials. Always:
+- Treat drafts as for supervisor review only.
+- Separate verified facts from allegations.
+- Never fabricate prior history or pay info.
+- Use neutral, factual language.
+- When the user supplies an incident, return a draft in the structured GSS format.`;
+
+let CHAT_HISTORY = [];
+
+function appendChat(role, text){
+  const el = document.createElement('div');
+  el.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+  el.innerHTML = `<div class="chat-bubble max-w-[80%] rounded-lg px-3 py-2 ${role==='user'?'bg-blue-600 text-white':'bg-slate-100'}">${escapeHTML(text)}</div>`;
+  $('chat-log').appendChild(el);
+  $('chat-log').scrollTop = $('chat-log').scrollHeight;
+}
+
+async function sendChat(){
+  const msg = $('chat-input').value.trim(); if (!msg) return;
+  $('chat-input').value = '';
+  appendChat('user', msg);
+  CHAT_HISTORY.push({ role:'user', content: msg });
+
+  const key = KV.get('gss.apiKey', '');
+  if (!key) {
+    appendChat('assistant', 'No API key configured. Add an Anthropic API key under Settings to enable the assistant. (Once set, this chat will call Claude directly.)');
+    return;
+  }
+  appendChat('assistant', 'Thinking…');
+  const placeholder = $('chat-log').lastElementChild;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type':'application/json',
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 1024,
+        system: SYS_PROMPT,
+        messages: CHAT_HISTORY
+      })
+    });
+    const data = await resp.json();
+    const text = (data.content && data.content[0] && data.content[0].text) || JSON.stringify(data);
+    placeholder.querySelector('.chat-bubble').textContent = text;
+    CHAT_HISTORY.push({ role:'assistant', content: text });
+  } catch (e) {
+    placeholder.querySelector('.chat-bubble').textContent = 'Error: ' + e.message;
+  }
+}
+
+// ---------- boot ----------
+loadSettings();
+renderStats();
+renderRecent();
+refreshLists();
+go('dashboard');
+</script>
+</body>
+</html>

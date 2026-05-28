@@ -1,0 +1,15 @@
+{
+  "name": "gss-workforce-app",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Global Security Solutions internal workforce console.",
+  "type": "module",
+  "engines": { "node": ">=18.0.0" },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
