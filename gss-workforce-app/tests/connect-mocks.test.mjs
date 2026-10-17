@@ -2,10 +2,7 @@
 // - Supabase auth is faked at the fetch layer (valid user for Bearer "good-token").
 // - Pipedream API is faked at the fetch layer with two accounts:
 //   acct_own (user-1) and acct_other (user-2).
-let WS = globalThis.WebSocket;
-if (!WS) {
-  try { ({ default: WS } = await import("ws")); globalThis.WebSocket = WS; } catch {}
-}
+import assert from "node:assert/strict";
 
 process.env.SUPABASE_URL = "https://test.supabase.co";
 process.env.SUPABASE_ANON_KEY = "test-anon";
@@ -15,8 +12,8 @@ process.env.PIPEDREAM_PROJECT_ID = "proj_9lsZN6Y";
 
 const calls = [];
 const ACCOUNTS = [
-  { id: "acct_own", name: "own sheet", externalId: "user-1", app: { name: "Google Sheets", nameSlug: "google_sheets" }, createdAt: "2026-10-01T00:00:00Z", updatedAt: "2026-10-02T00:00:00Z", healthy: true, dead: false },
-  { id: "acct_other", name: "other mail", externalId: "user-2", app: { name: "Gmail", nameSlug: "gmail" }, createdAt: "2026-10-01T00:00:00Z", updatedAt: "2026-10-02T00:00:00Z", healthy: true, dead: false },
+  { id: "acct_own", name: "own sheet", external_id: "user-1", app: { name: "Google Sheets", name_slug: "google_sheets" }, created_at: "2026-10-01T00:00:00.000Z", updated_at: "2026-10-02T00:00:00.000Z", healthy: true, dead: false, credentials: { api_key: "NEVER_EXPOSE_THIS" } },
+  { id: "acct_other", name: "other mail", external_id: "user-2", app: { name: "Gmail", name_slug: "gmail" }, created_at: "2026-10-01T00:00:00.000Z", updated_at: "2026-10-02T00:00:00.000Z", healthy: true, dead: false },
 ];
 
 global.fetch = async (url, init = {}) => {
@@ -40,7 +37,7 @@ global.fetch = async (url, init = {}) => {
       return jsonRes({ access_token: "pd_access_token", token_type: "bearer", expires_in: 3600 });
     }
     if (u.endsWith("/tokens")) {
-      return jsonRes({ token: "tok_mock_123", expiresAt: "2026-10-17T12:00:00Z", connectLinkUrl: "https://pipedream.com/connect-link/mock" });
+      return jsonRes({ token: "tok_mock_123", expires_at: "2026-10-17T12:00:00.000Z", connect_link_url: "https://pipedream.com/connect-link/mock" });
     }
     if (u.includes("/accounts/") && (init.method || "") === "DELETE") {
       return { ok: true, status: 204, json: async () => null, text: async () => "" };
@@ -61,7 +58,7 @@ global.fetch = async (url, init = {}) => {
 const res = () => ({
   code: 0, body: null,
   status(s) { this.code = s; return this; },
-  json(b) { this.body = b; return this; },
+  json(b) { this.body = JSON.parse(JSON.stringify(b)); return this; },
   setHeader() {},
 });
 const authReq = (body) => ({ method: "POST", headers: { authorization: "Bearer good-token" }, body });
@@ -76,6 +73,7 @@ let r = res();
 await tokenH(authReq({ external_user_id: "attacker-id" }), r);
 const pdTokenCall = calls.find(c => c.url.endsWith("/tokens"));
 check("token endpoint 200", r.code === 200 && r.body.token === "tok_mock_123", r);
+check("wire token expiry and Connect Link deserialize", r.body?.expiresAt === "2026-10-17T12:00:00.000Z" && r.body?.connectLinkUrl === "https://pipedream.com/connect-link/mock", r);
 check("external_user_id comes from session (user-1), not client body", pdTokenCall && pdTokenCall.body.includes("user-1") && !pdTokenCall.body.includes("attacker-id"), pdTokenCall);
 check("project id in URL", pdTokenCall && pdTokenCall.url.includes("proj_9lsZN6Y"), pdTokenCall);
 const envHeader = pdTokenCall && pdTokenCall.headers && typeof pdTokenCall.headers.entries === "function"
@@ -88,7 +86,16 @@ await accountsH(authReq({}), r);
 check("list 200", r.code === 200, r);
 check("list returns only user-1's account", r.body?.accounts?.length === 1 && r.body?.accounts[0]?.id === "acct_own", r.body);
 const own = (r.body?.accounts || []).find(a => a.id === "acct_own");
-check("slim mapping camelCase + no credentials", own && own.externalId === "user-1" && own.createdAt === "2026-10-01T00:00:00Z" && !("credentials" in own), own);
+check("slim mapping camelCase + no credentials", own && own.externalId === "user-1" && own.createdAt === "2026-10-01T00:00:00.000Z" && own.app?.nameSlug === "google_sheets" && !JSON.stringify(own).includes("NEVER_EXPOSE_THIS"), own);
+
+// Fixed production target must not change with conflicting environment overrides.
+process.env.PIPEDREAM_PROJECT_ID = "proj_wrong";
+process.env.PIPEDREAM_PROJECT_ENV = "development";
+calls.length = 0;
+r = res();
+await tokenH(authReq({}), r);
+const pinnedCall = calls.find(c => c.url.endsWith("/tokens"));
+check("conflicting overrides cannot change production project", pinnedCall?.url.includes("proj_9lsZN6Y") && pinnedCall.headers.get("x-pd-environment") === "production", pinnedCall?.url);
 
 // 3. delete another user's account -> 404
 r = res();
@@ -112,6 +119,22 @@ check("no auth 401", r.code === 401, r);
 r = res();
 await tokenH({ method: "GET", headers: {} }, r);
 check("GET 405", r.code === 405, r);
+
+// The browser SDK must cache a Date-valued expiry, avoiding repeated minting.
+const { PipedreamClient: BrowserClient } = await import("@pipedream/sdk/browser");
+let callbackCalls = 0;
+const browserClient = new BrowserClient({
+  projectEnvironment: "production",
+  externalUserId: "user-1",
+  tokenCallback: async () => {
+    callbackCalls++;
+    const data = { token: "cached_mock_token", expiresAt: new Date(Date.now() + 3600000).toISOString() };
+    return { token: data.token, expiresAt: new Date(data.expiresAt) };
+  },
+});
+assert.equal(await browserClient._tokenProvider.getToken(), "cached_mock_token");
+assert.equal(await browserClient._tokenProvider.getToken(), "cached_mock_token");
+check("browser token cache calls callback only once", callbackCalls === 1, callbackCalls);
 
 // 7. upstream Pipedream failure -> 502
 global.fetch = async (url, init = {}) => {

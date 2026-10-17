@@ -95,7 +95,7 @@ git push -u origin main
 ### 3. Vercel
 
 1. Go to https://vercel.com → Add New → Project → import the GitHub repo.
-2. Framework Preset: **Other**. Root directory: leave blank. Build: leave blank
+2. Framework Preset: **Other**. Root directory: `gss-workforce-app`. Build: leave blank
    (Vercel reads `vercel.json`).
 3. Before deploying, click **Environment Variables** and add:
 
@@ -109,8 +109,6 @@ git push -u origin main
    | `HUMANITY_BASE`       | `https://www.humanity.com/api/v2` (default)      |
    | `PIPEDREAM_CLIENT_ID`     | from https://pipedream.com/settings/api → OAuth client |
    | `PIPEDREAM_CLIENT_SECRET` | same OAuth client — keep secret              |
-   | `PIPEDREAM_PROJECT_ID`    | `proj_9lsZN6Y` (default)                    |
-   | `PIPEDREAM_PROJECT_ENV`   | `production` (default)                      |
 
 4. Click **Deploy**. You'll get a `https://gss-workforce-app-xxxx.vercel.app`
    URL — that's your app.
@@ -182,8 +180,8 @@ You'll need a `.env.local` with the same variables as listed in `.env.example`.
 ## Pipedream Connect details
 
 - Quickstart: https://pipedream.com/docs/connect/quickstart
-- The app pins `projectEnvironment: "production"` and `projectId: proj_9lsZN6Y`
-  (overridable via `PIPEDREAM_PROJECT_ID` / `PIPEDREAM_PROJECT_ENV`).
+- The app fixes `projectEnvironment: "production"` and `projectId: "proj_9lsZN6Y"`
+  in server code. Environment-variable overrides cannot switch this target.
 - Frontend uses `@pipedream/sdk` (browser build) loaded from esm.sh — same
   pattern as the Supabase import. It calls `connectAccount({ app })` which opens
   Pipedream's hosted OAuth popup; no app-side OAuth code needed.

@@ -6,6 +6,7 @@
 //   SUPABASE_ANON_KEY         (the public anon key — used to validate user tokens)
 
 import { createClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
 
 export async function requireUser(req, res) {
   const auth = req.headers.authorization || "";
@@ -18,7 +19,11 @@ export async function requireUser(req, res) {
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_ANON_KEY,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
+    {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+      realtime: { transport: WebSocket },
+    }
   );
 
   const { data, error } = await supabase.auth.getUser(token);

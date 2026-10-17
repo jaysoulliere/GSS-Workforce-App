@@ -13,10 +13,8 @@
     "test": "node tests/connect-mocks.test.mjs"
   },
   "dependencies": {
-    "@pipedream/sdk": "^3.1.6",
-    "@supabase/supabase-js": "^2.45.0"
-  },
-  "devDependencies": {
+    "@pipedream/sdk": "3.1.6",
+    "@supabase/supabase-js": "^2.45.0",
     "ws": "^8.22.0"
   }
 }
