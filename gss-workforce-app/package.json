@@ -4,12 +4,19 @@
   "private": true,
   "description": "Global Security Solutions internal workforce console.",
   "type": "module",
-  "engines": { "node": ">=18.0.0" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vercel dev",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "test": "node tests/connect-mocks.test.mjs"
   },
   "dependencies": {
+    "@pipedream/sdk": "^3.1.6",
     "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "ws": "^8.22.0"
   }
 }

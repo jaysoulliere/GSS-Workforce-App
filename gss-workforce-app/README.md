@@ -14,6 +14,10 @@ Claude `gss-workforce` plugin with a multi-user web app.
   create shifts, and provision users.
 - **AI assistant** — chat with Claude, routed through a Vercel serverless function
   using your server-side Anthropic key.
+- **Integrations (Pipedream Connect)** — connect third-party accounts (Google
+  Sheets, Gmail, Notion, GitHub, Slack, OpenAI) from the Integrations panel.
+  Uses the existing Pipedream project `proj_9lsZN6Y` in its **production**
+  environment; connected accounts are scoped to each manager's Supabase login.
 
 ## Architecture
 
@@ -22,8 +26,10 @@ Browser  ──►  /public/index.html           static
               /public/login.html            static
                   │
                   ├─►  Supabase  (Postgres + Auth)        — submissions, generated docs
-                  ├─►  /api/anthropic   (Vercel function) — Claude proxy
-                  └─►  /api/humanity    (Vercel function) — Humanity REST proxy
+                  ├─►  /api/anthropic        (Vercel function) — Claude proxy
+                  ├─►  /api/humanity         (Vercel function) — Humanity REST proxy
+                  ├─►  /api/connect-token    (Vercel function) — Pipedream Connect token mint
+                  └─►  /api/connect-accounts  (Vercel function) — list / delete connected accounts
 ```
 
 The frontend never sees your Anthropic or Humanity keys — both are server-side env
@@ -35,8 +41,11 @@ vars on Vercel. Supabase RLS restricts data to authenticated users.
 gss-workforce-app/
 ├── api/
 │   ├── _auth.js          shared Supabase JWT verifier
+│   ├── _pipedream.js     shared Pipedream Connect client (production, proj_9lsZN6Y)
 │   ├── anthropic.js      Claude proxy
-│   └── humanity.js       Humanity REST proxy
+│   ├── humanity.js       Humanity REST proxy
+│   ├── connect-token.js     mints short-lived Connect tokens per signed-in user
+│   └── connect-accounts.js  list / disconnect connected accounts
 ├── public/
 │   ├── config.js         frontend Supabase URL + anon key (edit this!)
 │   ├── index.html        main app
@@ -98,6 +107,10 @@ git push -u origin main
    | `ANTHROPIC_MODEL`     | `claude-sonnet-4-5-20250929` (optional)          |
    | `HUMANITY_API_TOKEN`  | from Humanity → Settings → API                   |
    | `HUMANITY_BASE`       | `https://www.humanity.com/api/v2` (default)      |
+   | `PIPEDREAM_CLIENT_ID`     | from https://pipedream.com/settings/api → OAuth client |
+   | `PIPEDREAM_CLIENT_SECRET` | same OAuth client — keep secret              |
+   | `PIPEDREAM_PROJECT_ID`    | `proj_9lsZN6Y` (default)                    |
+   | `PIPEDREAM_PROJECT_ENV`   | `production` (default)                      |
 
 4. Click **Deploy**. You'll get a `https://gss-workforce-app-xxxx.vercel.app`
    URL — that's your app.
@@ -144,6 +157,10 @@ You'll need a `.env.local` with the same variables as listed in `.env.example`.
   intentionally public. RLS is the gate.
 - **Backend keys** (Anthropic, Humanity, Supabase service role if you ever add
   one) live only in Vercel env vars. They never reach the browser.
+- **Pipedream Connect**: the browser only ever holds a short-lived Connect
+  token minted by `/api/connect-token` from the verified Supabase session —
+  the OAuth client ID/secret stay server-side, and connected accounts are
+  bound to each user's Supabase ID (`external_user_id`).
 - The single-admin model uses one Supabase user. To audit who did what, add an
   email column to `generated_docs` and capture `auth.uid()` server-side.
 
@@ -155,6 +172,23 @@ You'll need a `.env.local` with the same variables as listed in `.env.example`.
   or the date range is empty. Check Vercel function logs.
 - **AI chat returns 401** → Supabase session expired; sign out and back in.
 - **AI chat returns Anthropic error** → check `ANTHROPIC_API_KEY` in Vercel env.
+- **Integrations panel says "Pipedream Connect not configured"** → add
+  `PIPEDREAM_CLIENT_ID` + `PIPEDREAM_CLIENT_SECRET` to Vercel env vars (create
+  an OAuth client at https://pipedream.com/settings/api if you don't have one).
+- **Connect window opens then errors** → confirm the OAuth client belongs to the
+  same workspace as project `proj_9lsZN6Y`, and that the project's production
+  environment is active.
+
+## Pipedream Connect details
+
+- Quickstart: https://pipedream.com/docs/connect/quickstart
+- The app pins `projectEnvironment: "production"` and `projectId: proj_9lsZN6Y`
+  (overridable via `PIPEDREAM_PROJECT_ID` / `PIPEDREAM_PROJECT_ENV`).
+- Frontend uses `@pipedream/sdk` (browser build) loaded from esm.sh — same
+  pattern as the Supabase import. It calls `connectAccount({ app })` which opens
+  Pipedream's hosted OAuth popup; no app-side OAuth code needed.
+- To add another connectable app, drop a button in the Integrations panel with
+  the app's slug (see https://pipedream.com/apps), e.g. `connectApp('slack','Slack')`.
 
 ## What's intentionally NOT in v0.2
 

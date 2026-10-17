@@ -59,6 +59,7 @@
 
       <div class="pt-4 pb-1 text-[11px] uppercase tracking-wider text-slate-400 px-3">AI</div>
       <a data-nav="assistant" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">✦</span> Assistant</a>
+      <a data-nav="integrations" class="nav-link flex items-center gap-2 px-3 py-2 rounded cursor-pointer hover:bg-slate-100"><span class="nav-sub-icon">⚙</span> Integrations</a>
     </nav>
 
     <div class="p-3 border-t border-slate-200">
@@ -405,6 +406,33 @@
         </div>
       </section>
 
+      <!-- INTEGRATIONS -->
+      <section class="panel" id="panel-integrations">
+        <div class="bg-white rounded-lg p-6 border border-slate-200">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h2 class="text-lg font-semibold mb-1">Integrations</h2>
+              <p class="text-xs text-slate-500">Connect third-party accounts through Pipedream Connect. Tokens are minted server-side via /api/connect-token and scoped to your Supabase login.</p>
+            </div>
+            <div class="text-xs pill bg-emerald-100 text-emerald-800">Pipedream Connect</div>
+          </div>
+          <div id="conn-message" class="hidden p-3 rounded border text-xs mb-4"></div>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+            <button onclick="connectApp('google_sheets','Google Sheets')" class="border rounded p-3 text-left hover:bg-slate-50"><div class="font-medium">Google Sheets</div><div class="text-xs text-slate-500">Connect a spreadsheet account</div></button>
+            <button onclick="connectApp('gmail','Gmail')" class="border rounded p-3 text-left hover:bg-slate-50"><div class="font-medium">Gmail</div><div class="text-xs text-slate-500">Connect a Gmail account</div></button>
+            <button onclick="connectApp('notion','Notion')" class="border rounded p-3 text-left hover:bg-slate-50"><div class="font-medium">Notion</div><div class="text-xs text-slate-500">Connect a Notion workspace</div></button>
+            <button onclick="connectApp('github','GitHub')" class="border rounded p-3 text-left hover:bg-slate-50"><div class="font-medium">GitHub</div><div class="text-xs text-slate-500">Connect a GitHub account</div></button>
+            <button onclick="connectApp('slack','Slack')" class="border rounded p-3 text-left hover:bg-slate-50"><div class="font-medium">Slack</div><div class="text-xs text-slate-500">Connect a Slack workspace</div></button>
+            <button onclick="connectApp('openai','OpenAI')" class="border rounded p-3 text-left hover:bg-slate-50"><div class="font-medium">OpenAI</div><div class="text-xs text-slate-500">Connect an OpenAI account</div></button>
+          </div>
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-medium text-sm">Connected accounts</h3>
+            <button onclick="loadConnections()" class="text-sm border px-3 py-1 rounded">Refresh</button>
+          </div>
+          <div id="conn-accounts" class="space-y-2"></div>
+        </div>
+      </section>
+
     </div>
   </main>
 </div>
@@ -412,6 +440,7 @@
 <script src="/config.js"></script>
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PipedreamClient } from "https://esm.sh/@pipedream/sdk@3.1.6";
 
 // ---------- bootstrap ----------
 if (!window.GSS_CONFIG || !window.GSS_CONFIG.SUPABASE_URL.startsWith("https://")) {
@@ -453,6 +482,7 @@ const PAGE_TITLES = {
   shifts:       ["Shifts", "Create / queue shifts"],
   newuser:      ["New Humanity User", "Provision scheduling account"],
   assistant:    ["AI Assistant", "Powered by Claude (server-side)"],
+  integrations: ["Integrations", "Connect third-party accounts via Pipedream"],
 };
 
 window.go = (key) => {
@@ -465,6 +495,7 @@ window.go = (key) => {
   if (key === "visitlog")    loadList("visit_logs");
   if (key === "application") loadList("applications");
   if (key === "shifts")      loadShifts();
+  if (key === "integrations") loadConnections();
 };
 document.querySelectorAll("[data-nav]").forEach(el => el.addEventListener("click", () => go(el.dataset.nav)));
 document.querySelectorAll("[data-nav-link]").forEach(el => el.addEventListener("click", () => go(el.dataset.navLink)));
@@ -891,6 +922,101 @@ window.sendChat = async () => {
   if (!resp.ok) { placeholder.textContent = "Error: " + JSON.stringify(data); return; }
   placeholder.textContent = data.text || "(no response)";
   CHAT_HISTORY.push({ role:"assistant", content: data.text || "" });
+};
+
+// ---------- pipedream connect ----------
+// The PipedreamClient runs in the browser but never sees the OAuth client
+// secret: it fetches short-lived Connect tokens from /api/connect-token,
+// which derives the external_user_id from the verified Supabase session.
+let pdClient = null;
+async function getPDClient() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+  if (pdClient && pdClient.__externalUserId === session.user.id) return pdClient;
+  const externalUserId = session.user.id;
+  pdClient = new PipedreamClient({
+    projectEnvironment: "production",
+    externalUserId,
+    tokenCallback: async () => {
+      const res = await authFetch("/api/connect-token");
+      if (!res.ok) throw new Error("Failed to fetch Connect token");
+      const data = await res.json();
+      if (!data?.token) throw new Error("Failed to fetch Connect token");
+      // The SDK expects { token, expiresAt } so it can cache and refresh.
+      // Convert the expiry to a real Date so the SDK's cache comparison works.
+      return { token: data.token, expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined };
+    },
+  });
+  pdClient.__externalUserId = externalUserId;
+  return pdClient;
+}
+
+window.connectApp = async (appSlug, appName) => {
+  const client = await getPDClient();
+  const msg = $("conn-message");
+  if (!client) return alert("Not signed in.");
+  msg.classList.remove("hidden");
+  msg.className = "p-3 rounded border text-xs mb-4 bg-slate-50";
+  msg.textContent = `Opening ${appName} connection window…`;
+  client.connectAccount({
+    app: appSlug,
+    onSuccess: (account) => {
+      msg.className = "p-3 rounded border text-xs mb-4 bg-emerald-50 text-emerald-800";
+      msg.textContent = `${appName} connected (account ${account?.id || "ok"}).`;
+      loadConnections();
+    },
+    onError: (err) => {
+      msg.className = "p-3 rounded border text-xs mb-4 bg-red-50 text-red-700";
+      msg.textContent = `Connection error: ${err?.message || err}`;
+    },
+  });
+};
+
+window.loadConnections = async () => {
+  const el = $("conn-accounts");
+  if (!el) return;
+  el.innerHTML = '<div class="text-slate-400 text-sm">Loading…</div>';
+  let resp, data;
+  try {
+    resp = await authFetch("/api/connect-accounts", {});
+    data = await resp.json();
+  } catch (e) {
+    el.innerHTML = `<div class="text-red-500 text-xs">Request failed: ${escapeHTML(String(e))}</div>`;
+    return;
+  }
+  if (!resp.ok) {
+    el.innerHTML = `<div class="text-red-500 text-xs">${escapeHTML(typeof data?.error === "string" ? data.error : JSON.stringify(data))}</div>`;
+    return;
+  }
+  const accounts = data.accounts || [];
+  if (!accounts.length) {
+    el.innerHTML = '<div class="text-slate-400 text-sm">No connected accounts yet — use the buttons above to connect one.</div>';
+    return;
+  }
+  el.innerHTML = accounts.map(a => {
+    const appLabel = typeof a.app === "string" ? a.app : (a.app?.name || a.app?.nameSlug || "app");
+    const updated = a.updatedAt || a.createdAt;
+    const health = a.dead ? '<span class="pill bg-red-100 text-red-700">disconnected</span>'
+      : (a.healthy === false ? '<span class="pill bg-amber-100 text-amber-700">needs attention</span>' : "");
+    return `
+      <div class="border rounded p-3 flex justify-between items-center">
+        <div>
+          <div class="font-medium text-sm">${escapeHTML(appLabel)} <span class="text-slate-400">· ${escapeHTML(a.name || "")}</span> ${health}</div>
+          <div class="text-xs text-slate-500">${escapeHTML(a.id)}${updated ? " · updated " + new Date(updated).toLocaleString() : ""}</div>
+        </div>
+        <button class="text-xs text-red-600" onclick="disconnectPDAccount('${escapeHTML(a.id)}')">Disconnect</button>
+      </div>`;
+  }).join("");
+};
+
+window.disconnectPDAccount = async (accountId) => {
+  if (!confirm("Disconnect this account?")) return;
+  const resp = await authFetch("/api/connect-accounts", { account_id: accountId });
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    return alert("Disconnect failed: " + JSON.stringify(data));
+  }
+  loadConnections();
 };
 
 // ---------- dashboard ----------
